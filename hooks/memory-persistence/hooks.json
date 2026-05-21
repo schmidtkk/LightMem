@@ -1,0 +1,33 @@
+{
+  "description": "Reference lifecycle hook definitions for LightMem memory persistence. The production hook graph is hooks/hooks.json.",
+  "events": [
+    {
+      "event": "SessionStart",
+      "id": "lightmem:session-start",
+      "script": "scripts/hooks/session_start.py",
+      "purpose": "Detect repo state; inject compact hot context (initialized) or single-line nudge (uninitialized) via additionalContext. Matcher: startup|resume.",
+      "blocking": false
+    },
+    {
+      "event": "Stop",
+      "id": "lightmem:stop",
+      "script": "scripts/hooks/stop.py",
+      "purpose": "Append one JSONL entry to journal.jsonl after every assistant turn. Async — zero perceived latency. Scrubs secrets before persisting.",
+      "blocking": false
+    },
+    {
+      "event": "SessionEnd",
+      "id": "lightmem:session-end",
+      "script": "scripts/hooks/session_end.py",
+      "purpose": "Write per-session summary to .claude/lightmem/sessions/<date>-<shortId>.md using idempotent marker blocks. Runs once-per-day auto-purge.",
+      "blocking": false
+    },
+    {
+      "event": "PreCompact",
+      "id": "lightmem:pre-compact",
+      "script": "scripts/hooks/pre_compact.py",
+      "purpose": "Append a timestamped line to compaction-log.txt and annotate the active session file. Minimal by design — no state synthesis.",
+      "blocking": false
+    }
+  ]
+}

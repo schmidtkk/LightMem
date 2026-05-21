@@ -1,0 +1,14 @@
+{
+  "name": "lightmem",
+  "owner": {
+    "name": "LightMem contributors"
+  },
+  "plugins": [
+    {
+      "name": "lightmem",
+      "source": ".",
+      "description": "Structured, team-shareable project memory for Claude Code. CLAUDE.md is the gateway, .claude/lightmem/topics/ is the database.",
+      "version": "0.1.0"
+    }
+  ]
+}
