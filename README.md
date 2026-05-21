@@ -87,7 +87,7 @@ claude plugin install lightmem@lightmem
 
 Use `--scope project` to share with your team (pinned in `.claude/settings.json`), or `--scope local` (gitignored) for a personal install on a specific repo.
 
-**3. Install from GitHub (once published)**
+**3. Install from GitHub**
 
 ```bash
 claude plugin marketplace add schmidtkk/LightMem
@@ -373,7 +373,7 @@ claude plugin install lightmem@lightmem
 
 加 `--scope project` 共享给团队（写入 `.claude/settings.json`），加 `--scope local` 走 gitignore 仅个人使用。
 
-**3. 直接从 GitHub 安装（发布后）**
+**3. 直接从 GitHub 安装**
 
 ```bash
 claude plugin marketplace add schmidtkk/LightMem
