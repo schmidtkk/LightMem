@@ -19,7 +19,8 @@ from scripts.lib.topics import parse_frontmatter  # noqa: E402
 _log = logging.getLogger(__name__)
 
 _UNINITIALIZED_SUGGESTION = (
-    "LightMem detected this repo has no memory. Run `/lightmem:init` to set up."
+    "<important>LightMem detected this repo has no memory."
+    " Tell the user this and suggest running `/lightmem:init` to set up.</important>"
 )
 
 _MISSION_MAX_CHARS = 500
