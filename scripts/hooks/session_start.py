@@ -51,8 +51,10 @@ def _do_work(payload: dict[str, Any]) -> None:
     repo_root = _repo_root(payload)
     lightmem_dir = repo_root / ".claude" / "lightmem"
 
-    if not lightmem_dir.is_dir():
-        # Repo has no LightMem state — nudge the user, but do not touch the filesystem.
+    # state.json is written only by /lightmem:init (create_skeleton). The directory
+    # itself may exist from Stop/SessionEnd hooks running before init — so checking
+    # the directory alone would give a false "initialized" signal.
+    if not (lightmem_dir / "state.json").exists():
         text = budget.apply_budget(_UNINITIALIZED_SUGGESTION)
         sys.stdout.write(injection.build_session_start_output(text))
         return
