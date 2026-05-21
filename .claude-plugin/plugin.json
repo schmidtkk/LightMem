@@ -1,6 +1,6 @@
 {
   "name": "lightmem",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Structured, team-shareable project memory for Claude Code. Hooks maintain it; skills curate it.",
   "author": {
     "name": "LightMem contributors"
