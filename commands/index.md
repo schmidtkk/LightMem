@@ -7,9 +7,11 @@ Regenerate the human-readable topic index at `.claude/lightmem/index.md` by walk
 
 ## Invoke the index builder
 
+Before running the snippet, resolve `LIGHTMEM_PLUGIN_ROOT` to the absolute path of the LightMem plugin directory (the directory containing `skills/`). Use the `CLAUDE_PLUGIN_ROOT` environment variable if set, otherwise locate it via `find ~/.claude/plugins/cache/lightmem -maxdepth 4 -name "index_builder.py" | head -1` and walk up to the package root.
+
 ```python
-import sys, os
-sys.path.insert(0, os.environ['CLAUDE_PLUGIN_ROOT'])
+import sys
+sys.path.insert(0, LIGHTMEM_PLUGIN_ROOT)
 from pathlib import Path
 from scripts.lib import index_builder, topics
 

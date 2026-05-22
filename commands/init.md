@@ -7,11 +7,13 @@ Initialize or refresh LightMem memory scaffolding for the current repository.
 
 ## Step 1 — Inspect the repo
 
+Before running any snippet, resolve `LIGHTMEM_PLUGIN_ROOT` to the absolute path of the LightMem plugin directory (the directory containing `skills/`). Use the `CLAUDE_PLUGIN_ROOT` environment variable if set, otherwise locate it via `find ~/.claude/plugins/cache/lightmem -maxdepth 4 -name "index_builder.py" | head -1` and walk up to the package root.
+
 Run the following Python snippet to inspect the current repo state and print a summary:
 
 ```python
-import sys, os
-sys.path.insert(0, os.environ['CLAUDE_PLUGIN_ROOT'])
+import sys
+sys.path.insert(0, LIGHTMEM_PLUGIN_ROOT)
 from pathlib import Path
 from scripts.lib import init_helper
 
@@ -57,8 +59,8 @@ Map choice to mode: option 1 → `append_fenced`, option 2 → `backup_rewrite`,
 Then run:
 
 ```python
-import sys, os
-sys.path.insert(0, os.environ['CLAUDE_PLUGIN_ROOT'])
+import sys
+sys.path.insert(0, LIGHTMEM_PLUGIN_ROOT)
 from pathlib import Path
 from scripts.lib import init_helper
 
