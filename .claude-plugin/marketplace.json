@@ -8,7 +8,7 @@
       "name": "lightmem",
       "source": "./",
       "description": "Structured, team-shareable project memory for Claude Code. CLAUDE.md is the gateway, .claude/lightmem/topics/ is the database.",
-      "version": "0.1.0"
+      "version": "0.1.4"
     }
   ]
 }
