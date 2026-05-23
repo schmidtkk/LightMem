@@ -27,7 +27,7 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Canonical event names that v0.1 registers (PRD §4.3, §6).
-_EXPECTED_EVENTS = {"SessionStart", "Stop", "SessionEnd", "PreCompact"}
+_EXPECTED_EVENTS = {"SessionStart", "Stop", "SessionEnd", "PreCompact", "UserPromptSubmit"}
 
 
 # ---------------------------------------------------------------------------
@@ -334,6 +334,25 @@ class TestLiveHooksJson(unittest.TestCase):
             f"PreCompact must have a command referencing 'pre_compact.py', got {commands!r}",
         )
 
+    def test_user_prompt_submit_registered(self) -> None:
+        """v0.2: UserPromptSubmit is registered, command references user_prompt_submit.py."""
+        data = self._load()
+        hooks_map: dict = data["hooks"]
+        self.assertIn(
+            "UserPromptSubmit",
+            hooks_map,
+            "hooks/hooks.json must register a 'UserPromptSubmit' event",
+        )
+        commands = []
+        for block in hooks_map["UserPromptSubmit"]:
+            for entry in block.get("hooks", []):
+                commands.append(entry.get("command", ""))
+        self.assertTrue(
+            any("user_prompt_submit.py" in c for c in commands),
+            f"UserPromptSubmit must have a command referencing 'user_prompt_submit.py', "
+            f"got {commands!r}",
+        )
+
     # --- command-level invariants -------------------------------------------
 
     def test_all_hook_commands_use_plugin_root(self) -> None:
@@ -384,8 +403,7 @@ class TestLiveHooksJson(unittest.TestCase):
             unexpected,
             set(),
             f"hooks/hooks.json registers unexpected event(s): {unexpected}. "
-            f"PreToolUse, PostToolUse, UserPromptSubmit are deferred to v0.2/v0.3 "
-            f"(PRD §6.6, §6.7).",
+            f"PreToolUse, PostToolUse are deferred to v0.3+ (PRD §6.6, §6.7).",
         )
 
 
@@ -426,8 +444,8 @@ class TestReferenceHooksJson(unittest.TestCase):
             f"hooks/memory-persistence/hooks.json missing: {self._REF_JSON}",
         )
 
-    def test_reference_hooks_json_lists_4_events(self) -> None:
-        """PRD §4.4: reference file enumerates each event; 4 events in v0.1."""
+    def test_reference_hooks_json_lists_expected_events(self) -> None:
+        """PRD §4.4: reference file enumerates each event; must match _EXPECTED_EVENTS."""
         ref = self._load_ref()
         self.assertIn(
             "events",
@@ -438,8 +456,8 @@ class TestReferenceHooksJson(unittest.TestCase):
         self.assertIsInstance(events, list, "'events' must be a list")
         self.assertEqual(
             len(events),
-            4,
-            f"hooks/memory-persistence/hooks.json must list exactly 4 events "
+            len(_EXPECTED_EVENTS),
+            f"hooks/memory-persistence/hooks.json must list exactly {len(_EXPECTED_EVENTS)} events "
             f"(got {len(events)}): {[e.get('event') for e in events]}",
         )
 
@@ -590,6 +608,8 @@ class TestSkillFilesPresent(unittest.TestCase):
         "init": _SKILLS_ROOT / "init" / "SKILL.md",
         "doctor": _SKILLS_ROOT / "doctor" / "SKILL.md",
         "index": _SKILLS_ROOT / "index" / "SKILL.md",
+        "mark": _SKILLS_ROOT / "mark" / "SKILL.md",
+        "update": _SKILLS_ROOT / "update" / "SKILL.md",
     }
 
     def _all_skill_paths(self) -> list[Path]:
@@ -619,6 +639,18 @@ class TestSkillFilesPresent(unittest.TestCase):
         self.assertTrue(
             self._SKILL_PATHS["index"].exists(),
             f"skills/lightmem/index/SKILL.md missing: {self._SKILL_PATHS['index']}",
+        )
+
+    def test_mark_skill_exists(self) -> None:
+        self.assertTrue(
+            self._SKILL_PATHS["mark"].exists(),
+            f"skills/lightmem/mark/SKILL.md missing: {self._SKILL_PATHS['mark']}",
+        )
+
+    def test_update_skill_exists(self) -> None:
+        self.assertTrue(
+            self._SKILL_PATHS["update"].exists(),
+            f"skills/lightmem/update/SKILL.md missing: {self._SKILL_PATHS['update']}",
         )
 
     # --- YAML frontmatter ---------------------------------------------------

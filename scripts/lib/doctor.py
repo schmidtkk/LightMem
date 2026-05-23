@@ -460,15 +460,24 @@ def check_archive_purge_recent(repo_root: Path) -> CheckResult:
 
 def check_inbox_absent(repo_root: Path) -> CheckResult:
     inbox = _lightmem_dir(repo_root) / "inbox"
-    if inbox.is_dir():
+    if not inbox.is_dir():
+        return CheckResult(
+            "pass", "inbox_absent", ".claude/lightmem/inbox/ is correctly absent."
+        )
+    # inbox/ is a supported v0.2 artifact — only warn on unexpected files inside.
+    known = {"pending.md"}
+    unexpected = [
+        f.name for f in inbox.iterdir() if f.name not in known
+    ]
+    if unexpected:
         return CheckResult(
             "warn",
             "inbox_absent",
-            ".claude/lightmem/inbox/ exists (not supported until v0.4).",
-            "Remove the inbox/ directory; the curator feature is not yet active.",
+            f".claude/lightmem/inbox/ contains unexpected files: {', '.join(sorted(unexpected))}.",
+            "inbox/pending.md is the only expected file. Remove stray files.",
         )
     return CheckResult(
-        "pass", "inbox_absent", ".claude/lightmem/inbox/ is correctly absent."
+        "pass", "inbox_absent", ".claude/lightmem/inbox/ contains only expected files."
     )
 
 

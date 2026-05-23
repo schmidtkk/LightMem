@@ -36,13 +36,48 @@ Independent review of v0.1.0 surfaced 6 follow-up items beyond the 3 HIGH ship-b
 
 ## v0.2.0 — manual curation + Windows
 
-- `/lightmem:update` skill: convert recent discussion + inbox candidates into proposed topic edits (manual curation, no LLM in hook).
+### Memory architecture (settled design)
+
+```
+Authoritative  →  .claude/lightmem/topics/          ← single source of truth
+Gateways       →  CLAUDE.md, AGENTS.md              ← routing only, no facts
+Runtime        →  journal.jsonl, sessions/, archive/ ← audit / continuity
+Native memory  →  personal / session cache only      ← never project source of truth
+```
+
+Direction is one-way: **native memory → LightMem topics**. No bidirectional sync.
+Every write to `topics/` requires explicit human confirmation.
+
+### Gateway hard rule (enforced in CLAUDE.md gateway block and skills)
+
+`update mem` / `记住` / `写入项目记忆` → `/lightmem:update` only.
+Direct writes to `CLAUDE.md` body are forbidden for durable project facts.
+
+### Deliverables
+
+- **`/lightmem:mark <text>`** — zero-friction inbox append; no confirmation required.
+- **`[mem]` inline tag** — `UserPromptSubmit` hook scans user messages; lines containing `[mem]` are extracted and appended to `inbox/pending.md` automatically.
+- **`inbox/pending.md`** — staging area; `inbox.py` lib (`append_pending`, `read_pending`, `clear_pending`, `extract_mem_tags`).
+- **`/lightmem:update`** — reads inbox + Claude/Codex native project memory, presents candidates, user confirms per-item, writes to `topics/`, patches `index.md` incrementally.
+- **`patch_index_entry(repo_root, topic_id)`** in `index_builder.py` — updates or inserts one row without full rebuild.
+- **`UserPromptSubmit` hook** in `hooks/hooks.json` — pure stdlib, exits 0 on any error.
 - Windows support: file locking fallback chain, shell-quoting paths, CRLF handling already in v0.1 H3 fix.
 - Worktree-aware resume-injection (C5 above) lands here.
 
 ---
 
-## v0.3.0 — retrieval
+## v0.3.0 — Codex adapter + retrieval
+
+### Codex adapter
+
+Principle: **adapt each agent to LightMem's topic store, not the reverse.**
+
+- `templates/AGENTS.md.tmpl` — Codex gateway; reads same `.claude/lightmem/topics/`; contains no project facts.
+- `.codex-plugin/plugin.json` + Codex hooks (lifecycle remapped: no `SessionEnd` equivalent → use `Stop`/`PostCompact`).
+- Codex slash commands: `/lightmem:update`, `/lightmem:mark`, `/lightmem:doctor` reusing Python core.
+- Enhanced `/lightmem:doctor`: checks that both `CLAUDE.md` and `AGENTS.md` gateways exist and point to the same `topics/`; warns if native memory contains project facts.
+
+### Retrieval
 
 - `UserPromptSubmit` hook with SQLite FTS5 search over `topics/*.md` bodies + frontmatter.
 - Inject top 3-5 relevant snippets per prompt, capped at 2 KB total.

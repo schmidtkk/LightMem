@@ -1031,7 +1031,7 @@ class TestCheckArchivePurgeRecent(unittest.TestCase):
 
 
 class TestCheckInboxAbsent(unittest.TestCase):
-    """PRD §9: warn if .claude/lightmem/inbox/ exists (premature in v0.1)."""
+    """v0.2: inbox/ is a supported artifact. Warn only on unexpected files inside."""
 
     def test_no_inbox_is_pass(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1039,12 +1039,33 @@ class TestCheckInboxAbsent(unittest.TestCase):
             result = doctor.check_inbox_absent(Path(tmpdir))
             self.assertEqual(result.status, "pass")
 
-    def test_inbox_exists_is_warn(self) -> None:
+    def test_inbox_with_only_pending_md_is_pass(self) -> None:
+        """inbox/pending.md is the only expected file — should not warn."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lm = _make_lightmem_dir(Path(tmpdir))
+            inbox = lm / "inbox"
+            inbox.mkdir()
+            (inbox / "pending.md").write_text("# LightMem inbox\n", encoding="utf-8")
+            result = doctor.check_inbox_absent(Path(tmpdir))
+            self.assertEqual(result.status, "pass")
+
+    def test_inbox_with_unexpected_file_is_warn(self) -> None:
+        """Unexpected files inside inbox/ should trigger a warn."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lm = _make_lightmem_dir(Path(tmpdir))
+            inbox = lm / "inbox"
+            inbox.mkdir()
+            (inbox / "stray_file.txt").write_text("surprise", encoding="utf-8")
+            result = doctor.check_inbox_absent(Path(tmpdir))
+            self.assertEqual(result.status, "warn")
+
+    def test_inbox_empty_dir_is_pass(self) -> None:
+        """An empty inbox/ dir (no files) should pass — not a problem."""
         with tempfile.TemporaryDirectory() as tmpdir:
             lm = _make_lightmem_dir(Path(tmpdir))
             (lm / "inbox").mkdir()
             result = doctor.check_inbox_absent(Path(tmpdir))
-            self.assertEqual(result.status, "warn")
+            self.assertEqual(result.status, "pass")
 
     def test_no_lightmem_dir_at_all_is_pass(self) -> None:
         """No .claude/lightmem/ means no inbox either → pass."""

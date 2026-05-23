@@ -18,9 +18,9 @@ Changing any of these is a breaking design change. Discuss before changing.
 - **Memory model:** `CLAUDE.md` is the L0 gateway (router), not the database; hard limits ≤8 KB warn, ≤16 KB fail; no glob imports from CLAUDE.md.
 - **Safety and privacy:** zero telemetry in v0.1; secrets scrubbed from journal, session files, and topic bodies before write; `LIGHTMEM_HOOK_PROFILE=off` short-circuits all hooks with zero I/O.
 
-## v0.1 hooks
+## v0.2 hooks
 
-Four hooks are registered in [`hooks/hooks.json`](./hooks/hooks.json):
+Five hooks are registered in [`hooks/hooks.json`](./hooks/hooks.json):
 
 | Event | Script | Mode |
 |-------|--------|------|
@@ -28,6 +28,7 @@ Four hooks are registered in [`hooks/hooks.json`](./hooks/hooks.json):
 | `Stop` | `scripts/hooks/stop.py` | async |
 | `SessionEnd` | `scripts/hooks/session_end.py` | sync |
 | `PreCompact` | `scripts/hooks/pre_compact.py` | sync |
+| `UserPromptSubmit` | `scripts/hooks/user_prompt_submit.py` | sync |
 
 Reference documentation (lifecycle contract, not loaded by Claude Code): [`hooks/memory-persistence/`](./hooks/memory-persistence/).
 

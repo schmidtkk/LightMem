@@ -37,6 +37,15 @@
             "timeout": 3 }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/user_prompt_submit.py\"",
+            "timeout": 5 }
+        ]
+      }
     ]
   }
 }
