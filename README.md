@@ -266,7 +266,7 @@ claude plugin install lightmem@lightmem --scope local     # personal, gitignored
 
 - [x] **v0.1.0** — MVP: 4 hooks, 3 skills, 17 doctor checks. Secret scrubbing on all write paths. Stale-replay guard.
 - [x] **v0.2.0** — `/lightmem:update`, `/lightmem:mark`, `[mem]` inbox capture, UserPromptSubmit hook.
-- [x] **v0.3.0** — Dual Codex CLI + Claude Code plugin metadata, AGENTS.md gateway, 22 doctor checks, Codex rollout transcript parsing.
+- [x] **v0.3.1** — Dual Codex CLI + Claude Code plugin metadata, AGENTS.md gateway, 22 doctor checks, Codex rollout transcript parsing.
 - [ ] **v0.4.0** — Opt-in Haiku curator subagent with all 13 ECC observer safeguards.
 - [ ] **v0.5.0** — Optional `sentence-transformers` semantic retrieval. Monorepo path-scoping.
 
@@ -554,7 +554,7 @@ claude plugin install lightmem@lightmem --scope local     # 个人，gitignore
 
 - [x] **v0.1.0** —— MVP：4 个 hook，3 个 skill，17 项 doctor 检查。每个写入路径都涂抹密钥。stale-replay 防护。
 - [x] **v0.2.0** —— `/lightmem:update`、`/lightmem:mark`、`[mem]` inbox 捕获、UserPromptSubmit hook。
-- [x] **v0.3.0** —— Codex CLI + Claude Code 双插件元数据、AGENTS.md gateway、22 项 doctor 检查、Codex rollout transcript 解析。
+- [x] **v0.3.1** —— Codex CLI + Claude Code 双插件元数据、AGENTS.md gateway、22 项 doctor 检查、Codex rollout transcript 解析。
 - [ ] **v0.4.0** —— opt-in Haiku curator 子代理，自带 13 条 ECC 安全网。
 - [ ] **v0.5.0** —— 可选 `sentence-transformers` 语义检索。monorepo path-scoping。
 

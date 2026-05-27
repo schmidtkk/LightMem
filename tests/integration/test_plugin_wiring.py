@@ -112,39 +112,23 @@ class TestPluginManifest(unittest.TestCase):
             f"plugin.json 'version' must be semver X.Y.Z, got {version!r}",
         )
 
-    # --- skills field -------------------------------------------------------
+    # --- skills auto-discovery ---------------------------------------------
 
-    def test_manifest_skills_field_is_list(self) -> None:
+    def test_manifest_omits_default_skills_path(self) -> None:
+        """Claude Code auto-discovers skills/; declaring it duplicates skills."""
         manifest = self._load()
-        self.assertIn("skills", manifest, "plugin.json must have a 'skills' field")
-        self.assertIsInstance(
-            manifest["skills"], (list, str), "plugin.json 'skills' must be a list or path string"
+        self.assertNotIn(
+            "skills",
+            manifest,
+            "plugin.json must omit the default 'skills' path; Claude Code auto-discovers skills/",
         )
 
-    def test_manifest_skills_directory_exists(self) -> None:
-        """The path(s) listed in skills must resolve to an existing directory."""
-        manifest = self._load()
-        raw_skills = manifest.get("skills", [])
-        skills_entries: list = [raw_skills] if isinstance(raw_skills, str) else raw_skills
-        for entry in skills_entries:
-            # entry may be a string like "./skills/" or a dict with a path key
-            if isinstance(entry, str):
-                skill_path_str = entry
-            elif isinstance(entry, dict):
-                skill_path_str = entry.get("path", "")
-            else:
-                self.fail(f"Unexpected skills entry type: {type(entry)!r}: {entry!r}")
-
-            # Resolve relative to repo root (the manifest lives in .claude-plugin/,
-            # but relative paths in skills conventionally mean repo-root-relative
-            # because that is where Claude Code resolves them from).
-            # Strip leading './' for Path resolution.
-            skill_path_str = skill_path_str.lstrip("./")
-            candidate = _REPO_ROOT / skill_path_str
-            self.assertTrue(
-                candidate.exists(),
-                f"Skills directory referenced in plugin.json does not exist: {candidate}",
-            )
+    def test_default_skills_directory_exists(self) -> None:
+        """Claude Code's default skills/ directory must contain LightMem skills."""
+        candidate = _REPO_ROOT / "skills"
+        self.assertTrue(candidate.exists(), f"Default skills directory missing: {candidate}")
+        discovered = sorted(path.parent.name for path in candidate.glob("*/SKILL.md"))
+        self.assertEqual(discovered, ["doctor", "index", "init", "mark", "update"])
 
     # --- hooks field must be absent -----------------------------------------
 

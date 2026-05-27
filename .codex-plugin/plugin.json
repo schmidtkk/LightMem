@@ -1,6 +1,6 @@
 {
   "name": "lightmem",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Structured, team-shareable project memory for Codex CLI and Claude Code. Hooks maintain it; skills curate it.",
   "author": {
     "name": "LightMem contributors"
