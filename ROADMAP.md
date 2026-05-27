@@ -75,6 +75,7 @@ Principle: **adapt each agent to LightMem's topic store, not the reverse.**
 - `plugins/lightmem/.codex-plugin/plugin.json` plus repo-local `.agents/plugins/marketplace.json` for public Codex CLI install.
 - Runtime packages carry canonical skill layouts: `packages/claude-lightmem/skills/<name>/SKILL.md` for Claude Code and `plugins/lightmem/codex-skills/<name>/SKILL.md` for Codex.
 - Shared hook source is packaged into both runtimes; `SessionStart` accepts `startup|resume|clear|compact`, and `compact` replays prior session summaries like `resume`.
+- Claude Code hook configs keep `Stop` async; Codex wrapper hook metadata omits `async` until Codex supports async hook entries.
 - `SessionEnd` parses Claude transcripts and Codex rollout JSONL `response_item.payload` records.
 - Enhanced `/lightmem:doctor`: 22 checks, including both `CLAUDE.md` and `AGENTS.md` gateway existence, size, and shared `.claude/lightmem/topics/` path.
 
@@ -115,7 +116,7 @@ Inherited footgun classes that LightMem inoculates against:
 | RK4 | Secret leakage to disk | — | `scrub.scrub()` on every write path: journal entries, session summaries, doctor scans of topic bodies |
 | RK5 | Merge conflicts on shared index | — | Per-file frontmatter (no central `index.json`); filesystem IS the index |
 | RK6 | Gateway context bloat | — | Doctor gateway size checks for `CLAUDE.md` and `AGENTS.md` (8 KB warn / 16 KB fail) |
-| RK7 | Hook latency breaks UX | — | Stop hook `async: true`; all hooks `exit 0` on error |
+| RK7 | Hook latency breaks UX | — | Claude Stop hook `async: true`; Codex wrapper omits unsupported async metadata; all hooks `exit 0` on error |
 | RK8 | Cross-platform path / lock differences | — | Linux + macOS in v0.1, Windows in v0.2 |
 
 ---

@@ -1,6 +1,6 @@
 ---
 name: mark
-description: Quickly append a note to the LightMem inbox for later promotion to a topic. Usage: /lightmem:mark <text to remember>
+description: "Quickly append a note to the LightMem inbox for later promotion to a topic. Usage: /lightmem:mark <text to remember>"
 ---
 
 # /lightmem:mark

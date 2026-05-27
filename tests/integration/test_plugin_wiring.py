@@ -276,6 +276,31 @@ class TestCodexMarketplace(unittest.TestCase):
         self.assertFalse((plugin_root / "hooks").exists())
 
 
+class TestCodexRuntimeHooksJson(unittest.TestCase):
+    """Validates the Codex wrapper hook graph accepted by Codex CLI."""
+
+    _HOOKS_PATH = _REPO_ROOT / "plugins" / "lightmem" / "codex-hooks" / "hooks.json"
+
+    def _load(self) -> dict:
+        if not self._HOOKS_PATH.exists():
+            self.skipTest(f"Codex hooks not yet created: {self._HOOKS_PATH}")
+        with self._HOOKS_PATH.open(encoding="utf-8") as fh:
+            return json.load(fh)
+
+    def test_codex_hooks_do_not_request_async_execution(self) -> None:
+        """Codex does not support async hooks yet; unsupported async entries are skipped."""
+        data = self._load()
+        for event_name, blocks in data.get("hooks", {}).items():
+            for block_index, block in enumerate(blocks):
+                for hook_index, entry in enumerate(block.get("hooks", [])):
+                    self.assertIsNot(
+                        entry.get("async"),
+                        True,
+                        f"Codex hook {event_name}[{block_index}].hooks[{hook_index}] "
+                        "must not set async=true",
+                    )
+
+
 # ---------------------------------------------------------------------------
 # §4.3  Live hook configuration
 # ---------------------------------------------------------------------------
@@ -833,6 +858,49 @@ class TestSkillFilesPresent(unittest.TestCase):
                     fm,  # type: ignore[operator]
                     f"{path.relative_to(_REPO_ROOT)} frontmatter must contain 'description:' field",
                 )
+
+
+class TestRuntimeSkillFrontmatter(unittest.TestCase):
+    """Validates packaged skill frontmatter for agent runtimes."""
+
+    _SKILL_ROOTS = (
+        _REPO_ROOT / "packages" / "claude-lightmem" / "skills",
+        _REPO_ROOT / "plugins" / "lightmem" / "codex-skills",
+    )
+
+    def _skill_paths(self) -> list[Path]:
+        paths: list[Path] = []
+        for root in self._SKILL_ROOTS:
+            if root.exists():
+                paths.extend(sorted(root.glob("*/SKILL.md")))
+        return paths
+
+    def _parse_frontmatter_block(self, content: str) -> str | None:
+        if not content.startswith("---\n"):
+            return None
+        end = content.find("\n---", 4)
+        if end == -1:
+            return None
+        return content[4:end]
+
+    def test_frontmatter_plain_scalars_do_not_contain_colon_space(self) -> None:
+        """Unquoted 'Usage:' inside description is invalid YAML for Codex skill loading."""
+        for path in self._skill_paths():
+            with self.subTest(skill=path.relative_to(_REPO_ROOT)):
+                content = path.read_text(encoding="utf-8")
+                fm = self._parse_frontmatter_block(content)
+                self.assertIsNotNone(fm)
+                assert fm is not None
+                for line_number, line in enumerate(fm.splitlines(), start=2):
+                    if not re.match(r"^[A-Za-z_-]+:\s+[^\"']", line):
+                        continue
+                    value = line.split(":", 1)[1]
+                    self.assertNotRegex(
+                        value,
+                        r":\s+",
+                        f"{path.relative_to(_REPO_ROOT)}:{line_number} has an "
+                        "unquoted frontmatter scalar containing ': '",
+                    )
 
 
 # ---------------------------------------------------------------------------
