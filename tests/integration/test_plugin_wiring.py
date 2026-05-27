@@ -654,6 +654,14 @@ class TestReadme(unittest.TestCase):
             "README.md must have a section header containing 'Install' or 'install'",
         )
 
+    def test_readme_uses_sparse_claude_marketplace_install(self) -> None:
+        content = self._read()
+        self.assertIn(
+            "claude plugin marketplace add schmidtkk/LightMem --sparse .claude-plugin packages/claude-lightmem",
+            content,
+        )
+        self.assertIn("claude --plugin-dir ~/LightMem/packages/claude-lightmem", content)
+
 
 # ---------------------------------------------------------------------------
 # CLAUDE.md — updated per Round 7 spec

@@ -89,13 +89,13 @@ Try it once without installing:
 
 ```bash
 git clone https://github.com/schmidtkk/LightMem.git ~/LightMem
-claude --plugin-dir ~/LightMem
+claude --plugin-dir ~/LightMem/packages/claude-lightmem
 ```
 
 Install permanently from GitHub:
 
 ```bash
-claude plugin marketplace add schmidtkk/LightMem
+claude plugin marketplace add schmidtkk/LightMem --sparse .claude-plugin packages/claude-lightmem
 claude plugin install lightmem@lightmem
 ```
 
@@ -377,13 +377,13 @@ codex plugin add lightmem@lightmem
 
 ```bash
 git clone https://github.com/schmidtkk/LightMem.git ~/LightMem
-claude --plugin-dir ~/LightMem
+claude --plugin-dir ~/LightMem/packages/claude-lightmem
 ```
 
 从 GitHub 永久安装：
 
 ```bash
-claude plugin marketplace add schmidtkk/LightMem
+claude plugin marketplace add schmidtkk/LightMem --sparse .claude-plugin packages/claude-lightmem
 claude plugin install lightmem@lightmem
 ```
 
