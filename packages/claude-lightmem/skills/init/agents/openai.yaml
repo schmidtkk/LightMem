@@ -1,0 +1,6 @@
+interface:
+  display_name: LightMem Init
+  short_description: Initialize or refresh LightMem gateways and topic skeleton.
+  default_prompt: Use LightMem init for this task.
+policy:
+  allow_implicit_invocation: true

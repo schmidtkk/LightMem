@@ -1,0 +1,6 @@
+interface:
+  display_name: LightMem Mark
+  short_description: Append a quick memory note to the LightMem inbox.
+  default_prompt: Use LightMem mark for this task.
+policy:
+  allow_implicit_invocation: true

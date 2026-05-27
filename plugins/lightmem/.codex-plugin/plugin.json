@@ -32,6 +32,6 @@
       "Use LightMem project memory when it is installed in this repo."
     ]
   },
-  "skills": "./skills/",
-  "hooks": "./hooks/hooks.json"
+  "skills": "./codex-skills/",
+  "hooks": "./codex-hooks/hooks.json"
 }

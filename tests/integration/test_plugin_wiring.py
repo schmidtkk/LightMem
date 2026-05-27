@@ -153,6 +153,43 @@ class TestPluginManifest(unittest.TestCase):
         )
 
 
+class TestClaudeMarketplace(unittest.TestCase):
+    """Validates the Claude Code marketplace package split."""
+
+    _MARKETPLACE = _REPO_ROOT / ".claude-plugin" / "marketplace.json"
+    _PACKAGE_ROOT = _REPO_ROOT / "packages" / "claude-lightmem"
+
+    def _load(self) -> dict:
+        with self._MARKETPLACE.open(encoding="utf-8") as fh:
+            return json.load(fh)
+
+    def test_claude_marketplace_uses_claude_only_package(self) -> None:
+        data = self._load()
+        entries = {entry.get("name"): entry for entry in data.get("plugins", [])}
+        self.assertIn("lightmem", entries)
+        self.assertEqual(entries["lightmem"].get("source"), "./packages/claude-lightmem")
+
+    def test_claude_package_has_single_skill_tree(self) -> None:
+        self.assertTrue((self._PACKAGE_ROOT / ".claude-plugin" / "plugin.json").is_file())
+        discovered = sorted(
+            str(path.relative_to(self._PACKAGE_ROOT))
+            for path in self._PACKAGE_ROOT.rglob("SKILL.md")
+        )
+        self.assertEqual(
+            discovered,
+            [
+                "skills/doctor/SKILL.md",
+                "skills/index/SKILL.md",
+                "skills/init/SKILL.md",
+                "skills/mark/SKILL.md",
+                "skills/update/SKILL.md",
+            ],
+        )
+        self.assertFalse((self._PACKAGE_ROOT / ".codex-plugin").exists())
+        self.assertFalse((self._PACKAGE_ROOT / ".agents").exists())
+        self.assertFalse((self._PACKAGE_ROOT / "plugins").exists())
+
+
 class TestCodexPluginManifest(unittest.TestCase):
     """Validates .codex-plugin/plugin.json for Codex CLI installs."""
 
@@ -211,8 +248,24 @@ class TestCodexMarketplace(unittest.TestCase):
         entries = {entry.get("name"): entry for entry in data.get("plugins", [])}
         entry = entries["lightmem"]
         rel_path = entry.get("source", {}).get("path", "")
-        plugin_root = (_REPO_ROOT / rel_path).resolve()
+        plugin_root = _REPO_ROOT / rel_path
+        self.assertFalse(
+            plugin_root.is_symlink(),
+            "Codex wrapper must not be a symlink; Claude Code follows symlink loops and duplicates skills.",
+        )
         self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
+
+    def test_codex_wrapper_uses_non_claude_component_names(self) -> None:
+        """The Codex wrapper must not expose a nested skills/ tree to Claude."""
+        plugin_root = _REPO_ROOT / "plugins" / "lightmem"
+        with (plugin_root / ".codex-plugin" / "plugin.json").open(encoding="utf-8") as fh:
+            manifest = json.load(fh)
+        self.assertEqual(manifest.get("skills"), "./codex-skills/")
+        self.assertEqual(manifest.get("hooks"), "./codex-hooks/hooks.json")
+        self.assertTrue((plugin_root / "codex-skills" / "init" / "SKILL.md").is_file())
+        self.assertTrue((plugin_root / "codex-hooks" / "hooks.json").is_file())
+        self.assertFalse((plugin_root / "skills").exists())
+        self.assertFalse((plugin_root / "hooks").exists())
 
 
 # ---------------------------------------------------------------------------

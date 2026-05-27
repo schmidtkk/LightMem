@@ -1,6 +1,6 @@
 # LightMem Roadmap
 
-> **Status:** v0.3.1 current. Verify with `python3 -W error -m unittest discover tests`.
+> **Status:** v0.3.2 current. Verify with `python3 -W error -m unittest discover tests`.
 
 ---
 
@@ -65,7 +65,7 @@ Direct writes to `CLAUDE.md` or `AGENTS.md` bodies are forbidden for durable pro
 
 ---
 
-## v0.3.1 — Codex adapter (current)
+## v0.3.2 — Codex adapter (current)
 
 ### Codex adapter
 
