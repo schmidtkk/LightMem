@@ -52,7 +52,7 @@ def _all_commands(hooks_data: dict) -> list[str]:
 class TestPluginManifest(unittest.TestCase):
     """Validates .claude-plugin/plugin.json against PRD §4.1."""
 
-    _MANIFEST_PATH = _REPO_ROOT / ".claude-plugin" / "plugin.json"
+    _MANIFEST_PATH = _REPO_ROOT / "packages" / "claude-lightmem" / ".claude-plugin" / "plugin.json"
 
     def _load(self) -> dict:
         """Parse and return the manifest; skip the test if the file is absent."""
@@ -168,6 +168,10 @@ class TestClaudeMarketplace(unittest.TestCase):
         entries = {entry.get("name"): entry for entry in data.get("plugins", [])}
         self.assertIn("lightmem", entries)
         self.assertEqual(entries["lightmem"].get("source"), "./packages/claude-lightmem")
+        self.assertFalse(
+            (_REPO_ROOT / ".claude-plugin" / "plugin.json").exists(),
+            "The marketplace root must not also be a Claude plugin; that duplicates skills.",
+        )
 
     def test_claude_package_has_single_skill_tree(self) -> None:
         self.assertTrue((self._PACKAGE_ROOT / ".claude-plugin" / "plugin.json").is_file())
