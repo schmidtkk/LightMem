@@ -125,7 +125,7 @@ class TestPluginManifest(unittest.TestCase):
 
     def test_default_skills_directory_exists(self) -> None:
         """Claude Code's default skills/ directory must contain LightMem skills."""
-        candidate = _REPO_ROOT / "skills"
+        candidate = _REPO_ROOT / "packages" / "claude-lightmem" / "skills"
         self.assertTrue(candidate.exists(), f"Default skills directory missing: {candidate}")
         discovered = sorted(path.parent.name for path in candidate.glob("*/SKILL.md"))
         self.assertEqual(discovered, ["doctor", "index", "init", "mark", "update"])
@@ -172,6 +172,10 @@ class TestClaudeMarketplace(unittest.TestCase):
             (_REPO_ROOT / ".claude-plugin" / "plugin.json").exists(),
             "The marketplace root must not also be a Claude plugin; that duplicates skills.",
         )
+        self.assertFalse(
+            (_REPO_ROOT / "skills").exists(),
+            "The marketplace root must not contain skills/; Claude Code details scans it too.",
+        )
 
     def test_claude_package_has_single_skill_tree(self) -> None:
         self.assertTrue((self._PACKAGE_ROOT / ".claude-plugin" / "plugin.json").is_file())
@@ -197,7 +201,7 @@ class TestClaudeMarketplace(unittest.TestCase):
 class TestCodexPluginManifest(unittest.TestCase):
     """Validates .codex-plugin/plugin.json for Codex CLI installs."""
 
-    _MANIFEST_PATH = _REPO_ROOT / ".codex-plugin" / "plugin.json"
+    _MANIFEST_PATH = _REPO_ROOT / "plugins" / "lightmem" / ".codex-plugin" / "plugin.json"
 
     def _load(self) -> dict:
         if not self._MANIFEST_PATH.exists():
@@ -219,8 +223,8 @@ class TestCodexPluginManifest(unittest.TestCase):
 
     def test_codex_manifest_points_to_skills_and_hooks(self) -> None:
         manifest = self._load()
-        self.assertEqual(manifest.get("skills"), "./skills/")
-        self.assertEqual(manifest.get("hooks"), "./hooks/hooks.json")
+        self.assertEqual(manifest.get("skills"), "./codex-skills/")
+        self.assertEqual(manifest.get("hooks"), "./codex-hooks/hooks.json")
 
 
 class TestCodexMarketplace(unittest.TestCase):
@@ -703,7 +707,7 @@ class TestClaudeMdUpdated(unittest.TestCase):
 class TestSkillFilesPresent(unittest.TestCase):
     """Validates that the three v0.1 skills exist with correct YAML frontmatter."""
 
-    _SKILLS_ROOT = _REPO_ROOT / "skills"
+    _SKILLS_ROOT = _REPO_ROOT / "packages" / "claude-lightmem" / "skills"
 
     _SKILL_PATHS = {
         "init": _SKILLS_ROOT / "init" / "SKILL.md",

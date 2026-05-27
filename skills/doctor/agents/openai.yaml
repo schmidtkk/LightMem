@@ -1,6 +1,0 @@
-interface:
-  display_name: LightMem Doctor
-  short_description: Run LightMem integrity checks for Codex and Claude installs.
-  default_prompt: Use LightMem doctor for this task.
-policy:
-  allow_implicit_invocation: true

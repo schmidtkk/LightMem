@@ -72,9 +72,9 @@ Direct writes to `CLAUDE.md` or `AGENTS.md` bodies are forbidden for durable pro
 Principle: **adapt each agent to LightMem's topic store, not the reverse.**
 
 - `templates/AGENTS.md.tmpl` — Codex gateway; reads same `.claude/lightmem/topics/`; contains no project facts.
-- `.codex-plugin/plugin.json` plus repo-local `.agents/plugins/marketplace.json` for public Codex CLI install.
-- Canonical `skills/<name>/SKILL.md` layout with Codex `agents/openai.yaml` metadata.
-- Shared hooks remain in `hooks/hooks.json`; `SessionStart` accepts `startup|resume|clear|compact`, and `compact` replays prior session summaries like `resume`.
+- `plugins/lightmem/.codex-plugin/plugin.json` plus repo-local `.agents/plugins/marketplace.json` for public Codex CLI install.
+- Runtime packages carry canonical skill layouts: `packages/claude-lightmem/skills/<name>/SKILL.md` for Claude Code and `plugins/lightmem/codex-skills/<name>/SKILL.md` for Codex.
+- Shared hook source is packaged into both runtimes; `SessionStart` accepts `startup|resume|clear|compact`, and `compact` replays prior session summaries like `resume`.
 - `SessionEnd` parses Claude transcripts and Codex rollout JSONL `response_item.payload` records.
 - Enhanced `/lightmem:doctor`: 22 checks, including both `CLAUDE.md` and `AGENTS.md` gateway existence, size, and shared `.claude/lightmem/topics/` path.
 
