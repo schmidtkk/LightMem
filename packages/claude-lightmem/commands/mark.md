@@ -1,5 +1,5 @@
 ---
-description: Quickly append a note to the LightMem inbox for later promotion to a topic. Usage: /lightmem:mark <text>
+description: "Quickly append a note to the LightMem inbox for later promotion to a topic. Usage: /lightmem:mark <text>"
 allowed-tools: Bash(python3:*)
 ---
 

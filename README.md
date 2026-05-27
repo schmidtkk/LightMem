@@ -193,6 +193,8 @@ Commit `topics/*.md`. Everything else is runtime state.
 
 All hooks: **pure stdlib Python**, **zero LLM calls**, **`sys.exit(0)` on any exception**, **deterministic**. Hook commands intentionally keep `${CLAUDE_PLUGIN_ROOT}` because both Claude Code and current Codex plugin hook execution resolve that compatibility variable.
 
+Packaging note: Claude Code hook configs keep `Stop` async; the Codex wrapper omits `async` because current Codex skips async hook entries.
+
 ## Features
 
 - 🎯 **Structured topic taxonomy** — 7 semantic kinds map to how humans actually structure project knowledge
@@ -480,6 +482,8 @@ your-repo/
 5. **`UserPromptSubmit`** —— 把用户消息里的 `[mem]` 标记行提取到 `inbox/pending.md`，之后由 `/lightmem:update` 人工确认提升。
 
 全部 hook：**纯 stdlib Python**、**零 LLM 调用**、**任何异常都 `sys.exit(0)`**（hook 永远不阻塞 agent）、**完全确定性**。Hook 命令保留 `${CLAUDE_PLUGIN_ROOT}`，因为 Claude Code 和当前 Codex 插件 hook 执行都会解析这个兼容变量。
+
+打包说明：Claude Code hook 配置保留 `Stop` async；Codex wrapper 暂时不写 `async`，因为当前 Codex 会跳过 async hook 条目。
 
 ## Features
 

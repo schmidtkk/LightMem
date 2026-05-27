@@ -13,7 +13,7 @@ LightMem is a Codex CLI and Claude Code plugin that turns any repo into a struct
 Changing any of these is a breaking design change. Discuss before changing.
 
 - **Runtime and layout:** pure-stdlib Python 3.10+; project state in `<repo>/.claude/lightmem/` with gitignore for non-committable parts; hook scripts under `scripts/hooks/`, shared lib under `scripts/lib/`.
-- **Hook semantics:** `Stop` runs `async: true` — zero perceived latency; `Stop` is journal-only, no auto-promotion of markers to topics; every hook exits 0 on any internal exception.
+- **Hook semantics:** Claude/root `Stop` runs `async: true` for zero perceived latency; Codex wrapper hooks omit `async` until Codex supports async hooks. `Stop` is journal-only, no auto-promotion of markers to topics; every hook exits 0 on any internal exception.
 - **Bootstrap and UX:** first-run hook detects and suggests, never creates files; `/lightmem:init` offers interactive 3-option gateway handling for both `CLAUDE.md` and `AGENTS.md` (append-fenced default, backup+rewrite, abort); no LLM calls inside any hook.
 - **Memory model:** `CLAUDE.md` and `AGENTS.md` are L0 gateways (routers), not the database; hard limits ≤8 KB warn, ≤16 KB fail; no glob imports from gateway files.
 - **Safety and privacy:** zero telemetry in v0.1; secrets scrubbed from journal, session files, and topic bodies before write; `LIGHTMEM_HOOK_PROFILE=off` short-circuits all hooks with zero I/O.
@@ -25,7 +25,7 @@ Five hooks are registered in [`hooks/hooks.json`](./hooks/hooks.json):
 | Event | Script | Mode |
 |-------|--------|------|
 | `SessionStart` | `scripts/hooks/session_start.py` | sync, matcher `startup\|resume\|clear\|compact` |
-| `Stop` | `scripts/hooks/stop.py` | async |
+| `Stop` | `scripts/hooks/stop.py` | async in Claude/root config; sync metadata in Codex wrapper |
 | `SessionEnd` | `scripts/hooks/session_end.py` | sync |
 | `PreCompact` | `scripts/hooks/pre_compact.py` | sync |
 | `UserPromptSubmit` | `scripts/hooks/user_prompt_submit.py` | sync |
