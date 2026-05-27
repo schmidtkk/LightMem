@@ -1,5 +1,5 @@
 ---
-name: lightmem-index
+name: index
 description: Regenerate .claude/lightmem/index.md from the current topic files. Useful after adding/removing topics.
 ---
 

@@ -1,0 +1,20 @@
+{
+  "name": "lightmem",
+  "interface": {
+    "displayName": "LightMem"
+  },
+  "plugins": [
+    {
+      "name": "lightmem",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lightmem"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

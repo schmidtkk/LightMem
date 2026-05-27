@@ -42,6 +42,8 @@ _SUMMARY_END = "<!-- LIGHTMEM:SUMMARY:END -->"
 _TRANSCRIPT_UUID = "00893aaf-19fa-41d2-8238-13269b9b3ca0"
 _TRANSCRIPT_PATH = f"/tmp/{_TRANSCRIPT_UUID}.jsonl"
 _SHORT_ID = "9b9b3ca0"
+_CODEX_ROLLOUT_UUID = "019ce567-ecc8-7613-a0f8-f8b0db87d1f6"
+_CODEX_SHORT_ID = "db87d1f6"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -435,6 +437,95 @@ class TestSessionEndScrubsSecrets(unittest.TestCase):
                 "secret leaked into session file",
             )
             self.assertIn("[REDACTED]", content)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Test: Codex rollout transcript parsing
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestSessionEndCodexTranscriptParsing(unittest.TestCase):
+    """Codex stores messages and tool calls under response_item.payload."""
+
+    def _write_codex_rollout(self, tmpdir: str) -> str:
+        path = Path(tmpdir) / (
+            "rollout-2026-03-13T12-15-19-"
+            f"{_CODEX_ROLLOUT_UUID}.jsonl"
+        )
+        lines = [
+            {
+                "type": "session_meta",
+                "payload": {
+                    "id": _CODEX_ROLLOUT_UUID,
+                    "cwd": tmpdir,
+                    "originator": "codex_cli_rs",
+                },
+            },
+            {
+                "type": "response_item",
+                "payload": {
+                    "type": "message",
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": "Implement dual Codex and Claude support.",
+                        }
+                    ],
+                },
+            },
+            {
+                "type": "response_item",
+                "payload": {
+                    "type": "function_call",
+                    "name": "exec_command",
+                    "arguments": "{\"cmd\":\"rg Codex README.md\"}",
+                },
+            },
+            {
+                "type": "response_item",
+                "payload": {
+                    "type": "function_call",
+                    "name": "apply_patch",
+                    "arguments": "{\"file_path\":\"README.md\"}",
+                },
+            },
+        ]
+        path.write_text(
+            "\n".join(json.dumps(line) for line in lines) + "\n",
+            encoding="utf-8",
+        )
+        return str(path)
+
+    def test_codex_payload_user_message_is_captured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _init_lightmem(tmpdir)
+            tp = self._write_codex_rollout(tmpdir)
+            _run_hook(_minimal_payload(tmpdir, transcript_path=tp), repo_path=tmpdir)
+            session_file = _find_session_file(tmpdir, _CODEX_SHORT_ID)
+            self.assertIsNotNone(session_file)
+            content = session_file.read_text(encoding="utf-8")
+            self.assertIn("Implement dual Codex and Claude support.", content)
+
+    def test_codex_payload_tool_calls_are_captured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _init_lightmem(tmpdir)
+            tp = self._write_codex_rollout(tmpdir)
+            _run_hook(_minimal_payload(tmpdir, transcript_path=tp), repo_path=tmpdir)
+            session_file = _find_session_file(tmpdir, _CODEX_SHORT_ID)
+            self.assertIsNotNone(session_file)
+            content = session_file.read_text(encoding="utf-8")
+            self.assertIn("exec_command", content)
+            self.assertIn("apply_patch", content)
+
+    def test_codex_payload_file_path_is_captured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _init_lightmem(tmpdir)
+            tp = self._write_codex_rollout(tmpdir)
+            _run_hook(_minimal_payload(tmpdir, transcript_path=tp), repo_path=tmpdir)
+            session_file = _find_session_file(tmpdir, _CODEX_SHORT_ID)
+            self.assertIsNotNone(session_file)
+            content = session_file.read_text(encoding="utf-8")
+            self.assertIn("README.md", content)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

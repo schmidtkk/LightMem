@@ -2,7 +2,7 @@
 
 # 🧠 LightMem
 
-**Structured project memory for Claude Code.**
+**Structured project memory for Codex CLI and Claude Code.**
 
 🌐 **[English](#english)** · **[中文](#中文-zh)**
 
@@ -14,14 +14,14 @@
 
 # English
 
-> **Structured project memory for Claude Code.**
-> CLAUDE.md is the gateway. `.claude/lightmem/topics/` is the database.
+> **Structured project memory for Codex CLI and Claude Code.**
+> AGENTS.md and CLAUDE.md are gateways. `.claude/lightmem/topics/` is the database.
 
-Tired of re-explaining your repo to Claude on every session? LightMem maintains a structured, team-shareable knowledge base under `.claude/lightmem/` that survives every session, every compaction, every agent swap — and lives in plain markdown that keeps working even if you uninstall the plugin.
+Tired of re-explaining your repo to coding agents on every session? LightMem maintains a structured, team-shareable knowledge base under `.claude/lightmem/` that survives every session, every compaction, every agent swap — and lives in plain markdown that keeps working even if you uninstall the plugin.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  every new Claude Code session                                      │
+│  every new Codex CLI / Claude Code session                          │
 │                                                                     │
 │   SessionStart hook  ─►  composes hot context  ─►  inject ≤8 KB     │
 │         ▲                                                           │
@@ -48,7 +48,7 @@ Tired of re-explaining your repo to Claude on every session? LightMem maintains 
 
 ## Why LightMem?
 
-|                                     | Native CLAUDE.md alone | LightMem |
+|                                     | Native AGENTS.md / CLAUDE.md alone | LightMem |
 |-------------------------------------|------------------------|----------|
 | Loaded every session                | ✅                     | ✅ (as gateway router) |
 | Structured by semantic kind         | ❌ flat prose          | ✅ decisions / constraints / gotchas / workflows / mission / architecture / roadmap |
@@ -66,48 +66,54 @@ LightMem solves a different problem from "auto-learning user preferences" plugin
 
 ## Install
 
-LightMem ships as a Claude Code marketplace plugin. Three install paths:
+LightMem ships as a Codex CLI plugin and a Claude Code marketplace plugin.
 
-**1. Try it once (no install)**
+### Codex CLI
+
+```bash
+codex plugin marketplace add schmidtkk/LightMem --ref main
+codex plugin add lightmem@lightmem
+```
+
+To develop from a local clone instead:
+
+```bash
+git clone https://github.com/schmidtkk/LightMem.git ~/LightMem
+codex plugin marketplace add ~/LightMem
+codex plugin add lightmem@lightmem
+```
+
+### Claude Code
+
+Try it once without installing:
 
 ```bash
 git clone https://github.com/schmidtkk/LightMem.git ~/LightMem
 claude --plugin-dir ~/LightMem
 ```
 
-The plugin is active for that session only. Good for kicking the tires.
-
-**2. Install permanently from local clone**
-
-```bash
-git clone https://github.com/schmidtkk/LightMem.git ~/LightMem
-claude plugin marketplace add ~/LightMem
-claude plugin install lightmem@lightmem
-```
-
-Use `--scope project` to share with your team (pinned in `.claude/settings.json`), or `--scope local` (gitignored) for a personal install on a specific repo.
-
-**3. Install from GitHub**
+Install permanently from GitHub:
 
 ```bash
 claude plugin marketplace add schmidtkk/LightMem
 claude plugin install lightmem@lightmem
 ```
 
+Use `--scope project` to share with your team (pinned in `.claude/settings.json`), or `--scope local` (gitignored) for a personal install on a specific repo.
+
 **Verify**
 
 ```bash
-claude
-> /lightmem:doctor
+codex doctor --json
 ```
 
-You should see 17 checks. On an uninitialized repo, several will warn — that's expected. Run `/lightmem:init` to fix them.
+Then run LightMem doctor from your agent. In Claude Code, use `/lightmem:doctor`. In Codex CLI, ask Codex to use the LightMem doctor skill. You should see 22 checks. On an uninitialized repo, several will warn — that's expected. Run `/lightmem:init` in Claude Code or ask Codex to use the LightMem init skill to fix them.
 
 ## Quick start (5 minutes to value)
 
 ```bash
 cd ~/my-research-project
-claude
+codex   # or: claude
 ```
 
 First session in an uninitialized repo, you'll see:
@@ -123,27 +129,21 @@ Initialize:
 ```
 
 LightMem will:
-1. Detect any existing `CLAUDE.md` and ask: append fenced block (default), backup+rewrite, or abort.
+1. Detect any existing `CLAUDE.md` and `AGENTS.md` and ask: append fenced blocks (default), backup+rewrite, or abort.
 2. Create the `.claude/lightmem/` skeleton with 7 topic templates.
 3. Write a `.gitignore` so runtime artifacts stay out of git.
 
-Now open `.claude/lightmem/topics/mission.md`, write one paragraph about what your repo is for. Add a constraint. Record a decision. Commit them. **From the next session onward, Claude sees them automatically — no re-explaining.**
+Now open `.claude/lightmem/topics/mission.md`, write one paragraph about what your repo is for. Add a constraint. Record a decision. Commit them. **From the next session onward, Codex and Claude can see them automatically — no re-explaining.**
 
 ## Slash commands
 
 | Command | What it does |
 |---------|--------------|
-| `/lightmem:init` | Interactive bootstrap. Detects existing CLAUDE.md, offers 3 modes (append-fenced default, backup+rewrite, abort). Idempotent on re-runs. |
-| `/lightmem:doctor` | 17 integrity checks: size limits, gateway presence, frontmatter validity, slug collisions, broken links, secret scan (journal + topics + sessions), archive purge freshness, premature `inbox/`. |
+| `/lightmem:init` | Interactive bootstrap. Detects existing CLAUDE.md and AGENTS.md, offers 3 modes (append-fenced default, backup+rewrite, abort). Idempotent on re-runs. |
+| `/lightmem:doctor` | 22 integrity checks: gateway size/presence/path, frontmatter validity, slug collisions, broken links, secret scan (journal + topics + sessions), archive purge freshness, premature `inbox/`. |
 | `/lightmem:index` | Regenerate `.claude/lightmem/index.md` (human-readable topic table) from frontmatter. |
-
-Future (see [ROADMAP.md](./ROADMAP.md)):
-
-| Command | Version | What it will do |
-|---------|---------|------------------|
-| `/lightmem:update` | v0.2 | Convert recent discussion into proposed topic edits (manual curation). |
-| `/lightmem:retrieve <query>` | v0.3 | SQLite FTS5 search; auto-inject relevant topics via `UserPromptSubmit`. |
-| `/lightmem:curate` | v0.4 | Opt-in Haiku-driven background curator with 13 ECC safeguards. |
+| `/lightmem:mark <text>` | Append a quick note to `inbox/pending.md` for later promotion. |
+| `/lightmem:update` | Promote confirmed inbox/native-memory candidates into topic files. |
 
 ## Environment variables
 
@@ -163,6 +163,7 @@ Future (see [ROADMAP.md](./ROADMAP.md)):
 ```
 your-repo/
 ├── CLAUDE.md                            # gateway block fenced inside
+├── AGENTS.md                            # gateway block fenced inside
 └── .claude/
     └── lightmem/
         ├── .gitignore                   # excludes runtime artifacts
@@ -184,12 +185,13 @@ Commit `topics/*.md`. Everything else is runtime state.
 
 ## How it works
 
-1. **`SessionStart`** — on uninitialized repo injects a single nudge. On initialized repo composes a compact summary (mission head + active constraints + topic counts + recent decisions, ≤8 KB) and injects via `additionalContext`. On `source=resume` appends the matching prior-session summary wrapped in a **stale-replay guard** (inoculation against ECC issue #1534).
+1. **`SessionStart`** — on uninitialized repo injects a single nudge. On initialized repo composes a compact summary (mission head + active constraints + topic counts + recent decisions, ≤8 KB) and injects via `additionalContext`. On `source=resume` or `source=compact` appends the matching prior-session summary wrapped in a **stale-replay guard** (inoculation against ECC issue #1534).
 2. **`Stop`** (async) — atomically appends a JSONL entry (timestamp, session_id, transcript UUID tail, git branch, model, SHA-256 hash, scrubbed 200-char excerpt, touched files) to `journal.jsonl`. Honors `stop_hook_active` re-entry guard. Rotates at 5 MB.
 3. **`SessionEnd`** — walks transcript, writes marker-fenced summary to `sessions/<date>-<shortId>.md`. Re-runs replace only the fenced region. Auto-purges old archives once per day.
 4. **`PreCompact`** — appends to `compaction-log.txt` and annotates today's session file. <30 LOC. Observation, not synthesis.
+5. **`UserPromptSubmit`** — extracts `[mem]` tagged user lines into `inbox/pending.md` for later `/lightmem:update` promotion.
 
-All four hooks: **pure stdlib Python**, **zero LLM calls**, **`sys.exit(0)` on any exception**, **deterministic**.
+All hooks: **pure stdlib Python**, **zero LLM calls**, **`sys.exit(0)` on any exception**, **deterministic**. Hook commands intentionally keep `${CLAUDE_PLUGIN_ROOT}` because both Claude Code and current Codex plugin hook execution resolve that compatibility variable.
 
 ## Features
 
@@ -197,9 +199,9 @@ All four hooks: **pure stdlib Python**, **zero LLM calls**, **`sys.exit(0)` on a
 - 📦 **Team-shareable via git** — `topics/` is committable; runtime state is auto-gitignored
 - 🛡️ **Security-first** — secret-scrubbing regex on every write path
 - 🚪 **Marker-fenced idempotency** — hooks mutate only `<!-- LIGHTMEM:X:START -->...END -->` regions
-- 🩺 **Doctor with 17 concrete checks** — every check has an executable predicate
+- 🩺 **Doctor with 22 concrete checks** — every check has an executable predicate
 - 🎛️ **Killswitch env vars** — `LIGHTMEM_HOOK_PROFILE=off` short-circuits all I/O
-- 🧪 **867 tests under `python3 -W error`** — unit + integration + plugin wiring
+- 🧪 **Full unittest suite under `python3 -W error`** — unit + integration + plugin wiring
 - 🪶 **Pure stdlib** — Python 3.10+. Zero dependencies. Zero `pip install`.
 - 📜 **Survives plugin removal** — your topic markdowns work without LightMem installed
 
@@ -208,7 +210,7 @@ All four hooks: **pure stdlib Python**, **zero LLM calls**, **`sys.exit(0)` on a
 <details>
 <summary><b>Why not just put everything in CLAUDE.md?</b></summary>
 
-CLAUDE.md is loaded into every session's context budget. Letting it grow unboundedly burns tokens and entangles stable rules with episodic state. LightMem treats CLAUDE.md as an L0 router (≤8 KB warn / ≤16 KB fail) and puts the actual database in `.claude/lightmem/topics/`, only injecting a compact summary per session.
+AGENTS.md and CLAUDE.md are loaded into agent context. Letting them grow unboundedly burns tokens and entangles stable rules with episodic state. LightMem treats them as L0 routers (≤8 KB warn / ≤16 KB fail) and puts the actual database in `.claude/lightmem/topics/`, only injecting a compact summary per session.
 </details>
 
 <details>
@@ -224,15 +226,15 @@ ECC learns your **personal coding patterns** (per-user, per-machine, outside you
 </details>
 
 <details>
-<summary><b>What happens to my existing CLAUDE.md?</b></summary>
+<summary><b>What happens to my existing AGENTS.md or CLAUDE.md?</b></summary>
 
-`/lightmem:init` detects it and asks: (1) append a fenced LightMem block (recommended; existing content untouched), (2) backup to `CLAUDE.md.bak.<ts>` and rewrite from template, or (3) abort and print the block for manual paste. Re-running `/lightmem:init` replaces only the fenced region.
+`/lightmem:init` detects both gateway files and asks: (1) append fenced LightMem blocks (recommended; existing content untouched), (2) backup to `<name>.bak.<ts>` and rewrite from templates, or (3) abort and print the blocks for manual paste. Re-running `/lightmem:init` replaces only the fenced regions.
 </details>
 
 <details>
 <summary><b>What about Windows?</b></summary>
 
-v0.1 is tested on Linux and macOS. Windows is on the v0.2 roadmap — most code is platform-agnostic, file locking and shell-quoting need explicit Windows handling.
+LightMem is tested on Linux and macOS. Most code is platform-agnostic, but Windows file locking and shell quoting still need explicit verification.
 </details>
 
 <details>
@@ -262,9 +264,9 @@ claude plugin install lightmem@lightmem --scope local     # personal, gitignored
 
 ## Roadmap
 
-- [x] **v0.1.0** — MVP: 4 hooks, 3 skills, 17 doctor checks, 867 tests. Secret scrubbing on all write paths. Stale-replay guard. (this release)
-- [ ] **v0.2.0** — `/lightmem:update` skill. Windows support. Worktree-aware resume injection.
-- [ ] **v0.3.0** — `UserPromptSubmit` retrieval over SQLite FTS5.
+- [x] **v0.1.0** — MVP: 4 hooks, 3 skills, 17 doctor checks. Secret scrubbing on all write paths. Stale-replay guard.
+- [x] **v0.2.0** — `/lightmem:update`, `/lightmem:mark`, `[mem]` inbox capture, UserPromptSubmit hook.
+- [x] **v0.3.0** — Dual Codex CLI + Claude Code plugin metadata, AGENTS.md gateway, 22 doctor checks, Codex rollout transcript parsing.
 - [ ] **v0.4.0** — Opt-in Haiku curator subagent with all 13 ECC observer safeguards.
 - [ ] **v0.5.0** — Optional `sentence-transformers` semantic retrieval. Monorepo path-scoping.
 
@@ -288,7 +290,7 @@ LightMem borrows battle-tested patterns from [ECC](https://github.com/affaan-m/E
 python3 -W error -m unittest discover tests
 ```
 
-Suite must be green (867/867). Style: pure stdlib Python 3.10+, `from __future__ import annotations` at top of every file, type hints on public functions, no function docstrings (WHY-only `#` comments), all identifiers in English. ECC-derived files must carry the attribution header (see [LICENSE-NOTICE.md](./LICENSE-NOTICE.md)).
+Suite must be green under `python3 -W error -m unittest discover tests`. Style: pure stdlib Python 3.10+, `from __future__ import annotations` at top of every file, type hints on public functions, no function docstrings (WHY-only `#` comments), all identifiers in English. ECC-derived files must carry the attribution header (see [LICENSE-NOTICE.md](./LICENSE-NOTICE.md)).
 
 ## License
 
@@ -300,14 +302,14 @@ Suite must be green (867/867). Style: pure stdlib Python 3.10+, `from __future__
 
 # 中文
 
-> **给 Claude Code 用的结构化项目记忆。**
-> CLAUDE.md 是网关入口。`.claude/lightmem/topics/` 才是数据库。
+> **给 Codex CLI 和 Claude Code 用的结构化项目记忆。**
+> AGENTS.md 和 CLAUDE.md 是网关入口。`.claude/lightmem/topics/` 才是数据库。
 
-每次 session 都要跟 Claude 重新解释一遍项目背景？LightMem 在 `.claude/lightmem/` 下维护一份**结构化、团队可共享**的知识库，跨 session、跨 compaction、跨 agent 切换都不丢失——而且全部是纯 markdown，**即使卸载插件也照样能读**。
+每次 session 都要跟 agent 重新解释一遍项目背景？LightMem 在 `.claude/lightmem/` 下维护一份**结构化、团队可共享**的知识库，跨 session、跨 compaction、跨 agent 切换都不丢失——而且全部是纯 markdown，**即使卸载插件也照样能读**。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  每一次新的 Claude Code session                                     │
+│  每一次新的 Codex CLI / Claude Code session                         │
 │                                                                     │
 │   SessionStart hook  ─►  组合热上下文  ─►  注入 ≤8 KB               │
 │         ▲                                                           │
@@ -334,7 +336,7 @@ Suite must be green (867/867). Style: pure stdlib Python 3.10+, `from __future__
 
 ## 为什么用 LightMem？
 
-|                                | 仅靠原生 CLAUDE.md     | LightMem |
+|                                | 仅靠原生 AGENTS.md / CLAUDE.md | LightMem |
 |--------------------------------|------------------------|----------|
 | 每次 session 加载              | ✅                     | ✅ (作为网关路由) |
 | 按语义分类结构化               | ❌ 平铺散文            | ✅ 决策/约束/陷阱/流程/使命/架构/路线图 |
@@ -352,48 +354,54 @@ LightMem 跟 [ECC](https://github.com/affaan-m/ECC) 这类"自动学习用户偏
 
 ## 安装
 
-LightMem 作为 Claude Code marketplace 插件发布。三种安装方式：
+LightMem 同时支持 Codex CLI 插件和 Claude Code marketplace 插件。
 
-**1. 一次性试用（不安装）**
+### Codex CLI
+
+```bash
+codex plugin marketplace add schmidtkk/LightMem --ref main
+codex plugin add lightmem@lightmem
+```
+
+本地 clone 开发版：
+
+```bash
+git clone https://github.com/schmidtkk/LightMem.git ~/LightMem
+codex plugin marketplace add ~/LightMem
+codex plugin add lightmem@lightmem
+```
+
+### Claude Code
+
+一次性试用（不安装）：
 
 ```bash
 git clone https://github.com/schmidtkk/LightMem.git ~/LightMem
 claude --plugin-dir ~/LightMem
 ```
 
-仅当前 session 生效。试水用。
-
-**2. 从本地 clone 永久安装**
-
-```bash
-git clone https://github.com/schmidtkk/LightMem.git ~/LightMem
-claude plugin marketplace add ~/LightMem
-claude plugin install lightmem@lightmem
-```
-
-加 `--scope project` 共享给团队（写入 `.claude/settings.json`），加 `--scope local` 走 gitignore 仅个人使用。
-
-**3. 直接从 GitHub 安装**
+从 GitHub 永久安装：
 
 ```bash
 claude plugin marketplace add schmidtkk/LightMem
 claude plugin install lightmem@lightmem
 ```
 
+加 `--scope project` 共享给团队（写入 `.claude/settings.json`），加 `--scope local` 走 gitignore 仅个人使用。
+
 **验证**
 
 ```bash
-claude
-> /lightmem:doctor
+codex doctor --json
 ```
 
-应该看到 17 项检查。未初始化的 repo 会有几条 warn，正常——跑 `/lightmem:init` 修复。
+然后在 agent 里运行 LightMem doctor。Claude Code 用 `/lightmem:doctor`，Codex CLI 里让 Codex 使用 LightMem doctor skill。应该看到 22 项检查。未初始化的 repo 会有几条 warn，正常——跑 `/lightmem:init` 或让 Codex 使用 LightMem init skill 修复。
 
 ## 5 分钟快速上手
 
 ```bash
 cd ~/my-research-project
-claude
+codex   # 或 claude
 ```
 
 未初始化 repo 的第一个 session 你会看到：
@@ -409,27 +417,21 @@ LightMem detected this repo has no memory. Run `/lightmem:init` to set up.
 ```
 
 LightMem 会：
-1. 检测已有 `CLAUDE.md`，问你三选一：append 围栏块（默认）、备份+重写、放弃。
+1. 检测已有 `CLAUDE.md` 和 `AGENTS.md`，问你三选一：append 围栏块（默认）、备份+重写、放弃。
 2. 创建 `.claude/lightmem/` 骨架 + 7 个 topic 模板。
 3. 写 `.gitignore` 把运行时产物（`journal.jsonl`、`sessions/`、`state.json`）排除在外。
 
-然后打开 `.claude/lightmem/topics/mission.md`，写一段话说明这个 repo 是干什么的。加一条约束到 `topics/constraints/`，记录一个决策到 `topics/decisions/`，提交它们。**从下一个 session 开始，Claude 自动看到这些——再也不用重复解释。**
+然后打开 `.claude/lightmem/topics/mission.md`，写一段话说明这个 repo 是干什么的。加一条约束到 `topics/constraints/`，记录一个决策到 `topics/decisions/`，提交它们。**从下一个 session 开始，Codex 和 Claude 都能自动看到这些——再也不用重复解释。**
 
 ## 斜杠命令
 
 | 命令 | 做什么 |
 |------|--------|
-| `/lightmem:init` | 交互式 bootstrap。检测已有 CLAUDE.md，给三选项（默认 append-fenced / 备份重写 / 放弃）。re-run 幂等。 |
-| `/lightmem:doctor` | 17 项完整性检查：大小限制、gateway 标记、frontmatter 合法性、slug 重复、坏链、密钥扫描（journal + topics + sessions）、归档清理新旧、过早出现的 `inbox/`。 |
+| `/lightmem:init` | 交互式 bootstrap。检测已有 CLAUDE.md 和 AGENTS.md，给三选项（默认 append-fenced / 备份重写 / 放弃）。re-run 幂等。 |
+| `/lightmem:doctor` | 22 项完整性检查：gateway 大小/存在/路径、frontmatter 合法性、slug 重复、坏链、密钥扫描（journal + topics + sessions）、归档清理新旧、过早出现的 `inbox/`。 |
 | `/lightmem:index` | 从 frontmatter 重新生成 `.claude/lightmem/index.md`（人类可读的 topic 表格）。 |
-
-未来版本（见 [ROADMAP.md](./ROADMAP.md)）：
-
-| 命令 | 版本 | 做什么 |
-|------|------|--------|
-| `/lightmem:update` | v0.2 | 把最近对话转成候选 topic 编辑（人工 curation，hook 不调 LLM）。 |
-| `/lightmem:retrieve <query>` | v0.3 | SQLite FTS5 检索；`UserPromptSubmit` 自动注入相关 topic。 |
-| `/lightmem:curate` | v0.4 | opt-in Haiku 后台 curator，自带 13 条 ECC 安全网。 |
+| `/lightmem:mark <text>` | 快速追加一条 note 到 `inbox/pending.md`，稍后再提升成 topic。 |
+| `/lightmem:update` | 把用户确认过的 inbox/native-memory 候选内容提升到 topic 文件。 |
 
 ## 环境变量
 
@@ -449,6 +451,7 @@ LightMem 会：
 ```
 your-repo/
 ├── CLAUDE.md                            # 内部有围栏块，外面不动
+├── AGENTS.md                            # 内部有围栏块，外面不动
 └── .claude/
     └── lightmem/
         ├── .gitignore                   # 排除运行时产物
@@ -470,12 +473,13 @@ your-repo/
 
 ## 工作原理
 
-1. **`SessionStart`** —— 未初始化 repo 注入一句提示。已初始化 repo 组合精炼摘要（mission 头 + active 约束 + topic 计数 + 最近决策，≤8 KB）通过 `additionalContext` 注入。`source=resume` 时追加匹配的上一个 session 摘要，外面包一层 **stale-replay 防护**（防 ECC issue #1534 类型的 bug）。
+1. **`SessionStart`** —— 未初始化 repo 注入一句提示。已初始化 repo 组合精炼摘要（mission 头 + active 约束 + topic 计数 + 最近决策，≤8 KB）通过 `additionalContext` 注入。`source=resume` 或 `source=compact` 时追加匹配的上一个 session 摘要，外面包一层 **stale-replay 防护**（防 ECC issue #1534 类型的 bug）。
 2. **`Stop`** (async) —— 原子追加一条 JSONL 记录（时间戳、session_id、transcript UUID 尾段、git branch、model、完整消息的 SHA-256、涂抹后的 200 字符摘要、被改动的文件）到 `journal.jsonl`。遵守 `stop_hook_active` 重入守卫。文件超 5 MB 自动轮转。
 3. **`SessionEnd`** —— 遍历 transcript，把摘要写到 `sessions/<date>-<shortId>.md` 的 marker 围栏块里。re-run 只替换围栏内部。每天自动清理超期归档。
 4. **`PreCompact`** —— 追加一行到 `compaction-log.txt`，并在今天的 session 文件里加一行标注。<30 行代码。只观察、不综合。
+5. **`UserPromptSubmit`** —— 把用户消息里的 `[mem]` 标记行提取到 `inbox/pending.md`，之后由 `/lightmem:update` 人工确认提升。
 
-4 个 hook 全部：**纯 stdlib Python**、**零 LLM 调用**、**任何异常都 `sys.exit(0)`**（hook 永远不阻塞 Claude）、**完全确定性**。
+全部 hook：**纯 stdlib Python**、**零 LLM 调用**、**任何异常都 `sys.exit(0)`**（hook 永远不阻塞 agent）、**完全确定性**。Hook 命令保留 `${CLAUDE_PLUGIN_ROOT}`，因为 Claude Code 和当前 Codex 插件 hook 执行都会解析这个兼容变量。
 
 ## Features
 
@@ -483,9 +487,9 @@ your-repo/
 - 📦 **通过 git 团队共享** —— `topics/` 可提交；运行时状态自动 gitignore
 - 🛡️ **安全优先** —— 每个写入路径都过密钥涂抹正则
 - 🚪 **Marker 围栏幂等更新** —— hook 只动 `<!-- LIGHTMEM:X:START -->...END -->` 区域，外面的内容你随便写
-- 🩺 **doctor 17 项具体检查** —— 每条都有可执行的 predicate，不含糊
+- 🩺 **doctor 22 项具体检查** —— 每条都有可执行的 predicate，不含糊
 - 🎛️ **Killswitch 环境变量** —— `LIGHTMEM_HOOK_PROFILE=off` 零 I/O 全短路
-- 🧪 **867 个测试在 `python3 -W error` 下通过** —— 单测 + 集成 + plugin wiring
+- 🧪 **完整 unittest 套件在 `python3 -W error` 下通过** —— 单测 + 集成 + plugin wiring
 - 🪶 **纯 stdlib** —— Python 3.10+。零依赖。零 `pip install`。
 - 📜 **能挺过卸载** —— 即使没装 LightMem，你的 topic markdown 也照样能读
 
@@ -494,7 +498,7 @@ your-repo/
 <details>
 <summary><b>为什么不直接把所有内容塞进 CLAUDE.md？</b></summary>
 
-CLAUDE.md 每次 session 都全文加载，吃掉 context budget。让它无限增长不仅烧 token，还会把稳定规则和临时状态搅在一起。LightMem 把 CLAUDE.md 当 L0 路由（≤8 KB 警告 / ≤16 KB fail），真正的数据库放在 `.claude/lightmem/topics/`，每个 session 只注入一份精炼摘要。
+AGENTS.md 和 CLAUDE.md 都会进入 agent context。让它们无限增长不仅烧 token，还会把稳定规则和临时状态搅在一起。LightMem 把它们当 L0 路由（≤8 KB 警告 / ≤16 KB fail），真正的数据库放在 `.claude/lightmem/topics/`，每个 session 只注入一份精炼摘要。
 </details>
 
 <details>
@@ -510,15 +514,15 @@ ECC 学习你的**个人编码习惯**（per-user、per-machine、不进 repo）
 </details>
 
 <details>
-<summary><b>我已有的 CLAUDE.md 会怎么样？</b></summary>
+<summary><b>我已有的 AGENTS.md 或 CLAUDE.md 会怎么样？</b></summary>
 
-`/lightmem:init` 检测到它，告诉你它的大小和结构，让你三选一：(1) 顶部追加一个围栏好的 LightMem block——原有内容不动（推荐），(2) 备份到 `CLAUDE.md.bak.<ts>`，从模板重写新的 CLAUDE.md，(3) 放弃，把 block 打印出来让你手动粘贴。re-run `/lightmem:init` 只替换围栏内的部分。
+`/lightmem:init` 会同时检测两种 gateway 文件，告诉你它们的大小和结构，让你三选一：(1) 顶部追加围栏好的 LightMem blocks——原有内容不动（推荐），(2) 备份到 `<name>.bak.<ts>`，从模板重写，(3) 放弃，把 blocks 打印出来让你手动粘贴。re-run `/lightmem:init` 只替换围栏内的部分。
 </details>
 
 <details>
 <summary><b>Windows 支持？</b></summary>
 
-v0.1 测试覆盖 Linux 和 macOS。Windows 在 v0.2 路线图——多数代码跨平台，文件锁和 shell 引用需要显式处理。
+LightMem 测试覆盖 Linux 和 macOS。多数代码跨平台，但 Windows 文件锁和 shell 引用还需要显式验证。
 </details>
 
 <details>
@@ -548,9 +552,9 @@ claude plugin install lightmem@lightmem --scope local     # 个人，gitignore
 
 ## Roadmap
 
-- [x] **v0.1.0** —— MVP：4 个 hook，3 个 skill，17 项 doctor 检查，867 个测试。每个写入路径都涂抹密钥。stale-replay 防护。（本次发布）
-- [ ] **v0.2.0** —— `/lightmem:update` skill。Windows 支持。worktree 感知的 resume 注入。
-- [ ] **v0.3.0** —— `UserPromptSubmit` 检索（SQLite FTS5）。
+- [x] **v0.1.0** —— MVP：4 个 hook，3 个 skill，17 项 doctor 检查。每个写入路径都涂抹密钥。stale-replay 防护。
+- [x] **v0.2.0** —— `/lightmem:update`、`/lightmem:mark`、`[mem]` inbox 捕获、UserPromptSubmit hook。
+- [x] **v0.3.0** —— Codex CLI + Claude Code 双插件元数据、AGENTS.md gateway、22 项 doctor 检查、Codex rollout transcript 解析。
 - [ ] **v0.4.0** —— opt-in Haiku curator 子代理，自带 13 条 ECC 安全网。
 - [ ] **v0.5.0** —— 可选 `sentence-transformers` 语义检索。monorepo path-scoping。
 
@@ -574,7 +578,7 @@ LightMem 借用了 [ECC](https://github.com/affaan-m/ECC) 项目（MIT，作者 
 python3 -W error -m unittest discover tests
 ```
 
-测试必须全绿（今天是 867/867）。风格：纯 stdlib Python 3.10+，每个文件头部 `from __future__ import annotations`，public 函数加类型注解，**不写**函数 docstring（WHY-only 的 `#` 注释），所有标识符英文。ECC 派生文件必须带归属头（见 [LICENSE-NOTICE.md](./LICENSE-NOTICE.md)）。
+测试必须在 `python3 -W error -m unittest discover tests` 下全绿。风格：纯 stdlib Python 3.10+，每个文件头部 `from __future__ import annotations`，public 函数加类型注解，**不写**函数 docstring（WHY-only 的 `#` 注释），所有标识符英文。ECC 派生文件必须带归属头（见 [LICENSE-NOTICE.md](./LICENSE-NOTICE.md)）。
 
 ## 协议
 

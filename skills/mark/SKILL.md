@@ -1,5 +1,5 @@
 ---
-name: lightmem-mark
+name: mark
 description: Quickly append a note to the LightMem inbox for later promotion to a topic. Usage: /lightmem:mark <text to remember>
 ---
 
@@ -12,9 +12,9 @@ This is the fast path — review and promote with `/lightmem:update`.
 
 Before running any snippet, resolve `LIGHTMEM_PLUGIN_ROOT` to the absolute path
 of the LightMem plugin directory (the directory containing `skills/`). Use the
-`CLAUDE_PLUGIN_ROOT` environment variable if set, otherwise locate it via
-`find ~/.claude/plugins/cache/lightmem -maxdepth 4 -name "inbox.py" | head -1`
-and walk up to the package root.
+`CLAUDE_PLUGIN_ROOT` environment variable if set; otherwise locate
+`scripts/lib/inbox.py` under the installed Codex or Claude plugin cache and walk
+up to the package root.
 
 ## Append the item
 
@@ -25,7 +25,7 @@ from pathlib import Path
 from scripts.lib import inbox
 
 repo_root = Path.cwd()
-text = "$ARGUMENTS"  # the full text after /lightmem:mark (interpolated by Claude Code)
+text = "$ARGUMENTS"  # the full text after /lightmem:mark (interpolated by the agent runtime)
 
 path = inbox.append_pending(repo_root, text, source="mark")
 print(f"Appended to {path}")

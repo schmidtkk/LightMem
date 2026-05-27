@@ -43,68 +43,129 @@ def _lightmem_dir(repo_root: Path) -> Path:
     return repo_root / ".claude/lightmem"
 
 
-def check_claude_md_exists(repo_root: Path) -> CheckResult:
-    p = repo_root / "CLAUDE.md"
+def _gateway_file(repo_root: Path, filename: str) -> Path:
+    return repo_root / filename
+
+
+def _check_gateway_exists(repo_root: Path, filename: str, check_name: str) -> CheckResult:
+    p = _gateway_file(repo_root, filename)
     if p.exists():
-        return CheckResult("pass", "claude_md_exists", "CLAUDE.md exists.")
+        return CheckResult("pass", check_name, f"{filename} exists.")
     return CheckResult(
         "warn",
-        "claude_md_exists",
-        "CLAUDE.md not found in repo root.",
-        "Run `/lightmem:init` to create CLAUDE.md with the gateway block.",
+        check_name,
+        f"{filename} not found in repo root.",
+        f"Run `/lightmem:init` to create {filename} with the gateway block.",
     )
 
 
-def check_claude_md_has_gateway(repo_root: Path) -> CheckResult:
-    p = repo_root / "CLAUDE.md"
+def _check_gateway_marker(repo_root: Path, filename: str, check_name: str) -> CheckResult:
+    p = _gateway_file(repo_root, filename)
     if not p.exists():
         return CheckResult(
             "warn",
-            "claude_md_has_gateway",
-            "CLAUDE.md does not exist; cannot check for gateway marker.",
+            check_name,
+            f"{filename} does not exist; cannot check for gateway marker.",
         )
     text = p.read_text(encoding="utf-8")
     if markers.GATEWAY_START in text:
-        return CheckResult("pass", "claude_md_has_gateway", "Gateway marker found in CLAUDE.md.")
+        return CheckResult("pass", check_name, f"Gateway marker found in {filename}.")
     return CheckResult(
         "warn",
-        "claude_md_has_gateway",
-        "LIGHTMEM:GATEWAY:START marker missing from CLAUDE.md.",
+        check_name,
+        f"LIGHTMEM:GATEWAY:START marker missing from {filename}.",
         "Run `/lightmem:init` to insert the gateway block.",
     )
 
 
-def check_claude_md_size_warn(repo_root: Path) -> CheckResult:
-    p = repo_root / "CLAUDE.md"
+def _check_gateway_size_warn(repo_root: Path, filename: str, check_name: str) -> CheckResult:
+    p = _gateway_file(repo_root, filename)
     if not p.exists():
-        return CheckResult("pass", "claude_md_size_warn", "CLAUDE.md absent; size check skipped.")
+        return CheckResult("pass", check_name, f"{filename} absent; size check skipped.")
     size = p.stat().st_size
     if size > 8192:
         return CheckResult(
             "warn",
-            "claude_md_size_warn",
-            f"CLAUDE.md is {size} bytes (> 8 KB warn threshold).",
+            check_name,
+            f"{filename} is {size} bytes (> 8 KB warn threshold).",
             "Move non-gateway content into topic files under .claude/lightmem/topics/.",
         )
     return CheckResult(
-        "pass", "claude_md_size_warn", f"CLAUDE.md is {size} bytes (within 8 KB warn limit)."
+        "pass", check_name, f"{filename} is {size} bytes (within 8 KB warn limit)."
     )
 
 
-def check_claude_md_size_fail(repo_root: Path) -> CheckResult:
-    p = repo_root / "CLAUDE.md"
+def _check_gateway_size_fail(repo_root: Path, filename: str, check_name: str) -> CheckResult:
+    p = _gateway_file(repo_root, filename)
     if not p.exists():
-        return CheckResult("pass", "claude_md_size_fail", "CLAUDE.md absent; size check skipped.")
+        return CheckResult("pass", check_name, f"{filename} absent; size check skipped.")
     size = p.stat().st_size
     if size > 16384:
         return CheckResult(
             "fail",
-            "claude_md_size_fail",
-            f"CLAUDE.md is {size} bytes (> 16 KB hard limit).",
-            "Move content to topic files. CLAUDE.md must stay under 16 KB.",
+            check_name,
+            f"{filename} is {size} bytes (> 16 KB hard limit).",
+            f"Move content to topic files. {filename} must stay under 16 KB.",
         )
     return CheckResult(
-        "pass", "claude_md_size_fail", f"CLAUDE.md is {size} bytes (within 16 KB fail limit)."
+        "pass", check_name, f"{filename} is {size} bytes (within 16 KB fail limit)."
+    )
+
+
+def check_claude_md_exists(repo_root: Path) -> CheckResult:
+    return _check_gateway_exists(repo_root, "CLAUDE.md", "claude_md_exists")
+
+
+def check_claude_md_has_gateway(repo_root: Path) -> CheckResult:
+    return _check_gateway_marker(repo_root, "CLAUDE.md", "claude_md_has_gateway")
+
+
+def check_claude_md_size_warn(repo_root: Path) -> CheckResult:
+    return _check_gateway_size_warn(repo_root, "CLAUDE.md", "claude_md_size_warn")
+
+
+def check_claude_md_size_fail(repo_root: Path) -> CheckResult:
+    return _check_gateway_size_fail(repo_root, "CLAUDE.md", "claude_md_size_fail")
+
+
+def check_agents_md_exists(repo_root: Path) -> CheckResult:
+    return _check_gateway_exists(repo_root, "AGENTS.md", "agents_md_exists")
+
+
+def check_agents_md_has_gateway(repo_root: Path) -> CheckResult:
+    return _check_gateway_marker(repo_root, "AGENTS.md", "agents_md_has_gateway")
+
+
+def check_agents_md_size_warn(repo_root: Path) -> CheckResult:
+    return _check_gateway_size_warn(repo_root, "AGENTS.md", "agents_md_size_warn")
+
+
+def check_agents_md_size_fail(repo_root: Path) -> CheckResult:
+    return _check_gateway_size_fail(repo_root, "AGENTS.md", "agents_md_size_fail")
+
+
+def check_gateway_topics_path(repo_root: Path) -> CheckResult:
+    bad: list[str] = []
+    for filename in ("CLAUDE.md", "AGENTS.md"):
+        p = _gateway_file(repo_root, filename)
+        if not p.exists():
+            continue
+        text = p.read_text(encoding="utf-8")
+        if markers.GATEWAY_START not in text:
+            continue
+        if ".claude/lightmem/topics" not in text:
+            bad.append(filename)
+    if bad:
+        return CheckResult(
+            "warn",
+            "gateway_topics_path",
+            f"Gateway block missing .claude/lightmem/topics/ path in: {', '.join(bad)}.",
+            "Run `/lightmem:init` to refresh gateway blocks.",
+        )
+    return CheckResult(
+        "pass",
+        "gateway_topics_path",
+        "Gateway blocks route agents to .claude/lightmem/topics/.",
     )
 
 
@@ -486,6 +547,11 @@ ALL_CHECKS: list[Callable[[Path], CheckResult]] = [
     check_claude_md_has_gateway,
     check_claude_md_size_warn,
     check_claude_md_size_fail,
+    check_agents_md_exists,
+    check_agents_md_has_gateway,
+    check_agents_md_size_warn,
+    check_agents_md_size_fail,
+    check_gateway_topics_path,
     check_lightmem_dir_exists,
     check_gitignore_present,
     check_topic_frontmatter_valid,

@@ -161,6 +161,13 @@ class TestDeriveShortIdHappyPath(unittest.TestCase):
         )
         self.assertEqual(result, "55556666")
 
+    def test_codex_rollout_filename_prefix(self) -> None:
+        result = session_id.derive_short_id(
+            "/home/user/.codex/sessions/2026/03/13/"
+            "rollout-2026-03-13T12-15-19-019ce567-ecc8-7613-a0f8-f8b0db87d1f6.jsonl"
+        )
+        self.assertEqual(result, "db87d1f6")
+
 
 class TestDeriveShortIdOnlyBasenameCounts(unittest.TestCase):
     """

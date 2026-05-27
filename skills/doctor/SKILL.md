@@ -1,11 +1,11 @@
 ---
-name: lightmem-doctor
-description: Run all 17 LightMem integrity checks (CLAUDE.md size, gateway presence, topic frontmatter validity, duplicate slugs, broken links, secret scan, journal size, archive purge freshness). Prints a pass/warn/fail report.
+name: doctor
+description: Run all 22 LightMem integrity checks for Codex and Claude gateways, topics, sessions, journal, and archives. Prints a pass/warn/fail report.
 ---
 
 # /lightmem:doctor
 
-Run all 17 LightMem integrity checks against the current repository and print a structured report.
+Run all 22 LightMem integrity checks against the current repository and print a structured report.
 
 ## Invoke the doctor
 
@@ -48,7 +48,7 @@ Display the results grouped as follows:
           Fix: Each topic file must have id, kind, summary, and status in YAML frontmatter.
    ```
 
-Show all 17 checks. Show passes first (collapsed), then warnings, then failures at the bottom so the most urgent issues are prominent.
+Show all 22 checks. Show passes first (collapsed), then warnings, then failures at the bottom so the most urgent issues are prominent.
 
 ## Exit behavior
 

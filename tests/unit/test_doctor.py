@@ -3,13 +3,13 @@ from __future__ import annotations
 """
 Tests for scripts/lib/doctor.py
 
-Derived purely from PRD_v0.2.md §9 (doctor checks — 17 concrete predicates),
+Derived purely from PRD_v0.3.md §9 (doctor checks — 22 concrete predicates),
 §5 (memory model), §10 (env vars), and the Round-6 QA API spec.  No
 implementation files were read during authoring.
 
 Expected API:
   - CheckResult — frozen dataclass: status, name, message, fix_hint
-  - ALL_CHECKS: list[Callable[[Path], CheckResult]] — exactly 17 entries
+  - ALL_CHECKS: list[Callable[[Path], CheckResult]] — exactly 22 entries
   - run_all(repo_root: Path) -> list[CheckResult]
   - summary(results: list[CheckResult]) -> tuple[int, int, int]
   - Individual check functions: doctor.check_<name>(repo_root) -> CheckResult
@@ -144,18 +144,18 @@ class TestCheckResultDataclass(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# ALL_CHECKS — exactly 17 entries
+# ALL_CHECKS — exactly 22 entries
 # ---------------------------------------------------------------------------
 
 
 class TestAllChecksLength(unittest.TestCase):
-    """ALL_CHECKS must contain exactly 17 check functions."""
+    """ALL_CHECKS must contain exactly 22 check functions."""
 
     def test_all_checks_is_list(self) -> None:
         self.assertIsInstance(doctor.ALL_CHECKS, list)
 
-    def test_all_checks_has_17_entries(self) -> None:
-        self.assertEqual(len(doctor.ALL_CHECKS), 17)
+    def test_all_checks_has_22_entries(self) -> None:
+        self.assertEqual(len(doctor.ALL_CHECKS), 22)
 
     def test_all_checks_entries_are_callable(self) -> None:
         for i, fn in enumerate(doctor.ALL_CHECKS):
@@ -169,17 +169,17 @@ class TestAllChecksLength(unittest.TestCase):
 
 
 class TestRunAllBasicContract(unittest.TestCase):
-    """run_all must return exactly 17 CheckResult objects, in order."""
+    """run_all must return exactly 22 CheckResult objects, in order."""
 
     def test_run_all_returns_list(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             results = doctor.run_all(Path(tmpdir))
             self.assertIsInstance(results, list)
 
-    def test_run_all_returns_17_results(self) -> None:
+    def test_run_all_returns_22_results(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             results = doctor.run_all(Path(tmpdir))
-            self.assertEqual(len(results), 17)
+            self.assertEqual(len(results), 22)
 
     def test_run_all_results_are_check_result(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -244,7 +244,7 @@ class TestRunAllExceptionResilience(unittest.TestCase):
                 except Exception as exc:  # noqa: BLE001
                     self.fail(f"run_all raised despite exception-resilience spec: {exc}")
 
-                self.assertEqual(len(results), 17)
+                self.assertEqual(len(results), len(patched))
                 self.assertEqual(results[0].status, "warn",
                                  "Exceptional check must be converted to status='warn'")
 
@@ -384,6 +384,88 @@ class TestCheckClaudeMdHasGateway(unittest.TestCase):
                 f"Expected suggestion referencing 'init' or 'lightmem'; got "
                 f"fix_hint={result.fix_hint!r}, message={result.message!r}",
             )
+
+
+# ---------------------------------------------------------------------------
+# AGENTS.md gateway checks
+# ---------------------------------------------------------------------------
+
+
+class TestCheckAgentsMdExists(unittest.TestCase):
+    """Codex support: warn if AGENTS.md missing; pass if present."""
+
+    def test_missing_agents_md_is_warn(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = doctor.check_agents_md_exists(Path(tmpdir))
+            self.assertEqual(result.status, "warn")
+
+    def test_present_agents_md_is_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "AGENTS.md").write_text("# Hello\n", encoding="utf-8")
+            result = doctor.check_agents_md_exists(Path(tmpdir))
+            self.assertEqual(result.status, "pass")
+
+
+class TestCheckAgentsMdHasGateway(unittest.TestCase):
+    """Codex support: warn if LIGHTMEM:GATEWAY marker absent in AGENTS.md."""
+
+    def test_no_agents_md_is_warn(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = doctor.check_agents_md_has_gateway(Path(tmpdir))
+            self.assertEqual(result.status, "warn")
+
+    def test_agents_md_without_marker_is_warn(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "AGENTS.md").write_text("# No gateway\n", encoding="utf-8")
+            result = doctor.check_agents_md_has_gateway(Path(tmpdir))
+            self.assertEqual(result.status, "warn")
+
+    def test_agents_md_with_marker_is_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = f"{_GATEWAY_MARKER}\nsome content\n{_GATEWAY_END}\n"
+            (Path(tmpdir) / "AGENTS.md").write_text(content, encoding="utf-8")
+            result = doctor.check_agents_md_has_gateway(Path(tmpdir))
+            self.assertEqual(result.status, "pass")
+
+
+class TestCheckAgentsMdSize(unittest.TestCase):
+    """Codex support: AGENTS.md uses the same gateway size budgets."""
+
+    def test_agents_md_warns_over_8kb(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "AGENTS.md").write_text("x" * 8193, encoding="utf-8")
+            result = doctor.check_agents_md_size_warn(Path(tmpdir))
+            self.assertEqual(result.status, "warn")
+
+    def test_agents_md_fails_over_16kb(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "AGENTS.md").write_text("x" * 16385, encoding="utf-8")
+            result = doctor.check_agents_md_size_fail(Path(tmpdir))
+            self.assertEqual(result.status, "fail")
+
+
+class TestCheckGatewayTopicsPath(unittest.TestCase):
+    """Both gateway files must route agents to the shared LightMem topic store."""
+
+    def test_both_gateway_files_point_to_topics_dir_is_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            gateway = f"{_GATEWAY_MARKER}\n.claude/lightmem/topics/\n{_GATEWAY_END}\n"
+            (root / "CLAUDE.md").write_text(gateway, encoding="utf-8")
+            (root / "AGENTS.md").write_text(gateway, encoding="utf-8")
+            result = doctor.check_gateway_topics_path(root)
+            self.assertEqual(result.status, "pass")
+
+    def test_gateway_file_missing_topics_dir_is_warn(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            good = f"{_GATEWAY_MARKER}\n.claude/lightmem/topics/\n{_GATEWAY_END}\n"
+            bad = f"{_GATEWAY_MARKER}\nother/path\n{_GATEWAY_END}\n"
+            (root / "CLAUDE.md").write_text(good, encoding="utf-8")
+            (root / "AGENTS.md").write_text(bad, encoding="utf-8")
+            result = doctor.check_gateway_topics_path(root)
+            self.assertEqual(result.status, "warn")
+            self.assertIn("AGENTS.md", result.message)
 
 
 # ---------------------------------------------------------------------------

@@ -118,18 +118,14 @@ class TestPluginManifest(unittest.TestCase):
         manifest = self._load()
         self.assertIn("skills", manifest, "plugin.json must have a 'skills' field")
         self.assertIsInstance(
-            manifest["skills"], list, "plugin.json 'skills' must be a list"
-        )
-        self.assertGreater(
-            len(manifest["skills"]),
-            0,
-            "plugin.json 'skills' must be non-empty",
+            manifest["skills"], (list, str), "plugin.json 'skills' must be a list or path string"
         )
 
     def test_manifest_skills_directory_exists(self) -> None:
         """The path(s) listed in skills must resolve to an existing directory."""
         manifest = self._load()
-        skills_entries: list = manifest.get("skills", [])
+        raw_skills = manifest.get("skills", [])
+        skills_entries: list = [raw_skills] if isinstance(raw_skills, str) else raw_skills
         for entry in skills_entries:
             # entry may be a string like "./skills/" or a dict with a path key
             if isinstance(entry, str):
@@ -171,6 +167,68 @@ class TestPluginManifest(unittest.TestCase):
             "MIT",
             "plugin.json 'license' must be 'MIT'",
         )
+
+
+class TestCodexPluginManifest(unittest.TestCase):
+    """Validates .codex-plugin/plugin.json for Codex CLI installs."""
+
+    _MANIFEST_PATH = _REPO_ROOT / ".codex-plugin" / "plugin.json"
+
+    def _load(self) -> dict:
+        if not self._MANIFEST_PATH.exists():
+            self.skipTest(f"Codex manifest not yet created: {self._MANIFEST_PATH}")
+        with self._MANIFEST_PATH.open(encoding="utf-8") as fh:
+            return json.load(fh)
+
+    def test_codex_manifest_exists(self) -> None:
+        self.assertTrue(
+            self._MANIFEST_PATH.exists(),
+            f"Codex plugin manifest missing: {self._MANIFEST_PATH}",
+        )
+
+    def test_codex_manifest_has_required_fields(self) -> None:
+        manifest = self._load()
+        for field in ("name", "version", "description", "interface"):
+            with self.subTest(field=field):
+                self.assertIn(field, manifest)
+
+    def test_codex_manifest_points_to_skills_and_hooks(self) -> None:
+        manifest = self._load()
+        self.assertEqual(manifest.get("skills"), "./skills/")
+        self.assertEqual(manifest.get("hooks"), "./hooks/hooks.json")
+
+
+class TestCodexMarketplace(unittest.TestCase):
+    """Validates repository-local Codex marketplace metadata."""
+
+    _MARKETPLACE = _REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
+
+    def _load(self) -> dict:
+        if not self._MARKETPLACE.exists():
+            self.skipTest(f"Codex marketplace not yet created: {self._MARKETPLACE}")
+        with self._MARKETPLACE.open(encoding="utf-8") as fh:
+            return json.load(fh)
+
+    def test_codex_marketplace_exists(self) -> None:
+        self.assertTrue(self._MARKETPLACE.exists())
+
+    def test_codex_marketplace_contains_lightmem_entry(self) -> None:
+        data = self._load()
+        entries = {entry.get("name"): entry for entry in data.get("plugins", [])}
+        self.assertIn("lightmem", entries)
+        entry = entries["lightmem"]
+        self.assertEqual(entry.get("source", {}).get("source"), "local")
+        self.assertEqual(entry.get("source", {}).get("path"), "./plugins/lightmem")
+        self.assertEqual(entry.get("policy", {}).get("installation"), "AVAILABLE")
+        self.assertEqual(entry.get("policy", {}).get("authentication"), "ON_INSTALL")
+
+    def test_codex_marketplace_path_resolves_to_plugin_root(self) -> None:
+        data = self._load()
+        entries = {entry.get("name"): entry for entry in data.get("plugins", [])}
+        entry = entries["lightmem"]
+        rel_path = entry.get("source", {}).get("path", "")
+        plugin_root = (_REPO_ROOT / rel_path).resolve()
+        self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
 
 
 # ---------------------------------------------------------------------------
@@ -217,7 +275,7 @@ class TestLiveHooksJson(unittest.TestCase):
     # --- SessionStart -------------------------------------------------------
 
     def test_session_start_registered(self) -> None:
-        """PRD §4.3: SessionStart has matcher='startup|resume', type='command',
+        """PRD §4.3: SessionStart has startup/resume/clear/compact matcher, type='command',
         command references session_start.py, timeout is int."""
         data = self._load()
         hooks_map: dict = data["hooks"]
@@ -231,11 +289,13 @@ class TestLiveHooksJson(unittest.TestCase):
             len(blocks), 0, "SessionStart must have at least one block"
         )
         block = blocks[0]
-        self.assertEqual(
-            block.get("matcher"),
-            "startup|resume",
-            f"SessionStart block 'matcher' must be 'startup|resume', got {block.get('matcher')!r}",
-        )
+        matcher = block.get("matcher", "")
+        for source in ("startup", "resume", "clear", "compact"):
+            self.assertIn(
+                source,
+                matcher,
+                f"SessionStart matcher must include {source!r}, got {matcher!r}",
+            )
         entries = block.get("hooks", [])
         self.assertGreater(
             len(entries), 0, "SessionStart block must have at least one hooks entry"
@@ -602,7 +662,7 @@ class TestClaudeMdUpdated(unittest.TestCase):
 class TestSkillFilesPresent(unittest.TestCase):
     """Validates that the three v0.1 skills exist with correct YAML frontmatter."""
 
-    _SKILLS_ROOT = _REPO_ROOT / "skills" / "lightmem"
+    _SKILLS_ROOT = _REPO_ROOT / "skills"
 
     _SKILL_PATHS = {
         "init": _SKILLS_ROOT / "init" / "SKILL.md",
@@ -626,31 +686,31 @@ class TestSkillFilesPresent(unittest.TestCase):
     def test_init_skill_exists(self) -> None:
         self.assertTrue(
             self._SKILL_PATHS["init"].exists(),
-            f"skills/lightmem/init/SKILL.md missing: {self._SKILL_PATHS['init']}",
+            f"skills/init/SKILL.md missing: {self._SKILL_PATHS['init']}",
         )
 
     def test_doctor_skill_exists(self) -> None:
         self.assertTrue(
             self._SKILL_PATHS["doctor"].exists(),
-            f"skills/lightmem/doctor/SKILL.md missing: {self._SKILL_PATHS['doctor']}",
+            f"skills/doctor/SKILL.md missing: {self._SKILL_PATHS['doctor']}",
         )
 
     def test_index_skill_exists(self) -> None:
         self.assertTrue(
             self._SKILL_PATHS["index"].exists(),
-            f"skills/lightmem/index/SKILL.md missing: {self._SKILL_PATHS['index']}",
+            f"skills/index/SKILL.md missing: {self._SKILL_PATHS['index']}",
         )
 
     def test_mark_skill_exists(self) -> None:
         self.assertTrue(
             self._SKILL_PATHS["mark"].exists(),
-            f"skills/lightmem/mark/SKILL.md missing: {self._SKILL_PATHS['mark']}",
+            f"skills/mark/SKILL.md missing: {self._SKILL_PATHS['mark']}",
         )
 
     def test_update_skill_exists(self) -> None:
         self.assertTrue(
             self._SKILL_PATHS["update"].exists(),
-            f"skills/lightmem/update/SKILL.md missing: {self._SKILL_PATHS['update']}",
+            f"skills/update/SKILL.md missing: {self._SKILL_PATHS['update']}",
         )
 
     # --- YAML frontmatter ---------------------------------------------------
@@ -741,6 +801,18 @@ class TestTemplatesPresent(unittest.TestCase):
             path.stat().st_size,
             0,
             "templates/CLAUDE.md.tmpl must be non-empty",
+        )
+
+    def test_agents_md_template_exists(self) -> None:
+        path = self._TMPL_ROOT / "AGENTS.md.tmpl"
+        self.assertTrue(
+            path.exists(),
+            f"templates/AGENTS.md.tmpl missing: {path}",
+        )
+        self.assertIn(
+            ".claude/lightmem/topics",
+            path.read_text(encoding="utf-8"),
+            "templates/AGENTS.md.tmpl must route Codex to the shared topic store",
         )
 
     def test_gitignore_template_exists(self) -> None:

@@ -1,5 +1,5 @@
 ---
-name: lightmem-update
+name: update
 description: Promote inbox items and native project memory entries into LightMem topics. The single authoritative entry point for structured memory updates.
 ---
 
@@ -14,9 +14,9 @@ write confirmed items to `.claude/lightmem/topics/` and patch `index.md`.
 
 Before running any snippet, resolve `LIGHTMEM_PLUGIN_ROOT` to the absolute path
 of the LightMem plugin directory (the directory containing `skills/`). Use the
-`CLAUDE_PLUGIN_ROOT` environment variable if set, otherwise locate it via
-`find ~/.claude/plugins/cache/lightmem -maxdepth 4 -name "inbox.py" | head -1`
-and walk up to the package root.
+`CLAUDE_PLUGIN_ROOT` environment variable if set; otherwise locate
+`scripts/lib/inbox.py` under the installed Codex or Claude plugin cache and walk
+up to the package root.
 
 ## Step 1 — Gather candidates
 
@@ -33,13 +33,15 @@ for i, item in enumerate(pending):
     print(f"  [{i}] {item}")
 ```
 
-Then read native project memory files. Claude project memory lives at
-`~/.claude/projects/<slug>/memory/`. Use the Read tool to list and read
-those files. Present their content as additional candidates.
+Then read native project memory files when the runtime provides them. Claude
+Code project memory lives at `~/.claude/projects/<slug>/memory/`. Codex uses
+repo instructions such as `AGENTS.md` rather than a separate project memory
+directory, so only treat non-LightMem notes there as candidates when the user
+explicitly asks you to migrate them.
 
 Label each candidate with its source:
 - `[inbox]` — from `inbox/pending.md`
-- `[native]` — from Claude/Codex native project memory
+- `[native]` — from Claude Code project memory or user-selected Codex repo notes
 
 ## Step 2 — List existing topics
 
@@ -174,8 +176,8 @@ Tell the user:
 
 ## Hard rules
 
-- **Never write project facts directly to `CLAUDE.md`.**  
-  `CLAUDE.md` is a gateway router only. All durable facts go to `topics/`.
+- **Never write project facts directly to `CLAUDE.md` or `AGENTS.md`.**  
+  They are gateway routers only. All durable facts go to `topics/`.
 - **Never auto-promote without user confirmation.** Every write to `topics/` requires
   an explicit user choice in Step 3.
 - **Secret scrub is mandatory.** Always pass text through `scrub.scrub()` before

@@ -22,6 +22,7 @@ class SkeletonPlan:
     existing_lightmem_dir: bool
     # tuple, not list — preserves the frozen-dataclass deep-immutability contract.
     topics_to_create: tuple[str, ...]
+    existing_agents_md: bool = False
 
 
 def _today_iso() -> str:
@@ -53,6 +54,7 @@ def inspect_repo(repo_root: Path) -> SkeletonPlan:
         existing_claude_md=(repo_root / "CLAUDE.md").exists(),
         existing_lightmem_dir=lightmem_dir.is_dir(),
         topics_to_create=tuple(to_create),
+        existing_agents_md=(repo_root / "AGENTS.md").exists(),
     )
 
 
@@ -88,36 +90,39 @@ def create_skeleton(repo_root: Path) -> None:
         state.write_state(repo_root, state.default_state())
 
 
-def gateway_block_content() -> str:
-    tmpl = _TEMPLATES_DIR / "CLAUDE.md.tmpl"
+def gateway_block_content(gateway_file: str = "CLAUDE.md") -> str:
+    if gateway_file not in {"CLAUDE.md", "AGENTS.md"}:
+        raise ValueError(f"unsupported gateway file: {gateway_file}")
+    tmpl = _TEMPLATES_DIR / f"{gateway_file}.tmpl"
     return tmpl.read_text(encoding="utf-8")
 
 
-def update_claude_md(
+def _update_gateway_md(
     repo_root: Path,
+    gateway_file: str,
     mode: Literal["append_fenced", "backup_rewrite", "abort"],
 ) -> Path | None:
-    claude_md = repo_root / "CLAUDE.md"
-    fence_block = markers.fence("GATEWAY", gateway_block_content())
+    gateway_md = repo_root / gateway_file
+    fence_block = markers.fence("GATEWAY", gateway_block_content(gateway_file))
 
     if mode == "abort":
         sys.stdout.write(fence_block + "\n")
         return None
 
     if mode == "backup_rewrite":
-        if claude_md.exists():
+        if gateway_md.exists():
             ts = datetime.now(timezone.utc).isoformat().replace(":", "-")
-            backup = claude_md.with_name(f"CLAUDE.md.bak.{ts}")
-            os.replace(claude_md, backup)
-        _atomic_write(claude_md, fence_block + "\n")
-        return claude_md
+            backup = gateway_md.with_name(f"{gateway_file}.bak.{ts}")
+            os.replace(gateway_md, backup)
+        _atomic_write(gateway_md, fence_block + "\n")
+        return gateway_md
 
     # append_fenced (default): prepend or replace gateway fence idempotently.
-    if not claude_md.exists():
-        _atomic_write(claude_md, fence_block + "\n")
-        return claude_md
+    if not gateway_md.exists():
+        _atomic_write(gateway_md, fence_block + "\n")
+        return gateway_md
 
-    existing = claude_md.read_text(encoding="utf-8")
+    existing = gateway_md.read_text(encoding="utf-8")
     pattern = markers.marker_pair_regex("GATEWAY")
     if pattern.search(existing):
         # Replace the existing fence body idempotently.
@@ -126,8 +131,34 @@ def update_claude_md(
         # Prepend the fence followed by a blank line separator.
         new_content = fence_block + "\n\n" + existing
 
-    _atomic_write(claude_md, new_content)
-    return claude_md
+    _atomic_write(gateway_md, new_content)
+    return gateway_md
+
+
+def update_claude_md(
+    repo_root: Path,
+    mode: Literal["append_fenced", "backup_rewrite", "abort"],
+) -> Path | None:
+    return _update_gateway_md(repo_root, "CLAUDE.md", mode)
+
+
+def update_agents_md(
+    repo_root: Path,
+    mode: Literal["append_fenced", "backup_rewrite", "abort"],
+) -> Path | None:
+    return _update_gateway_md(repo_root, "AGENTS.md", mode)
+
+
+def update_gateway_files(
+    repo_root: Path,
+    mode: Literal["append_fenced", "backup_rewrite", "abort"],
+) -> tuple[Path, ...]:
+    updated: list[Path] = []
+    for gateway_file in ("CLAUDE.md", "AGENTS.md"):
+        result = _update_gateway_md(repo_root, gateway_file, mode)
+        if result is not None:
+            updated.append(result)
+    return tuple(updated)
 
 
 def _atomic_write(path: Path, content: str) -> None:

@@ -10,9 +10,9 @@ This is the zero-friction fast path — review and promote with `/lightmem:updat
 
 Before running any snippet, resolve `LIGHTMEM_PLUGIN_ROOT` to the absolute path
 of the LightMem plugin directory (the directory containing `skills/`). Use the
-`CLAUDE_PLUGIN_ROOT` environment variable if set, otherwise locate it via
-`find ~/.claude/plugins/cache/lightmem -maxdepth 4 -name "inbox.py" | head -1`
-and walk up to the package root.
+`CLAUDE_PLUGIN_ROOT` environment variable if set; otherwise locate
+`scripts/lib/inbox.py` under the installed Codex or Claude plugin cache and walk
+up to the package root.
 
 ## Append the item
 

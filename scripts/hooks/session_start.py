@@ -94,10 +94,10 @@ def _build_hot_summary(
     if decisions:
         sections.append(decisions)
 
-    # Prior-session summary only makes sense on resume — replaying it on a fresh
-    # startup would surface stale state when the user just opened a new session.
+    # Prior-session summary only makes sense on resume/compact — replaying it on
+    # a fresh startup would surface stale state when the user just opened a session.
     source = payload.get("source", "")
-    if source == "resume":
+    if source in {"resume", "compact"}:
         prior = _prior_session_summary(lightmem_dir)
         if prior:
             sections.append(prior)

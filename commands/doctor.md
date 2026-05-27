@@ -1,13 +1,13 @@
 ---
-description: Run all 17 LightMem integrity checks (CLAUDE.md size, gateway presence, topic frontmatter validity, duplicate slugs, broken links, secret scan, journal size, archive purge freshness). Prints a pass/warn/fail report.
+description: Run all 22 LightMem integrity checks for Codex and Claude gateways, topics, sessions, journal, and archives. Prints a pass/warn/fail report.
 allowed-tools: Bash(python3:*)
 ---
 
-Run all 17 LightMem integrity checks against the current repository and print a structured report.
+Run all 22 LightMem integrity checks against the current repository and print a structured report.
 
 ## Invoke the doctor
 
-Before running the snippet, resolve `LIGHTMEM_PLUGIN_ROOT` to the absolute path of the LightMem plugin directory (the directory containing `skills/`). Use the `CLAUDE_PLUGIN_ROOT` environment variable if set, otherwise locate it via `find ~/.claude/plugins/cache/lightmem -maxdepth 4 -name "index_builder.py" | head -1` and walk up to the package root.
+Before running the snippet, resolve `LIGHTMEM_PLUGIN_ROOT` to the absolute path of the LightMem plugin directory (the directory containing `skills/`). Use the `CLAUDE_PLUGIN_ROOT` environment variable if set; otherwise locate `scripts/lib/index_builder.py` under the installed Codex or Claude plugin cache and walk up to the package root.
 
 ```python
 import sys
@@ -46,7 +46,7 @@ Display the results grouped as follows:
           Fix: Each topic file must have id, kind, summary, and status in YAML frontmatter.
    ```
 
-Show all 17 checks: passes first, then warnings, then failures so the most urgent issues are prominent.
+Show all 22 checks: passes first, then warnings, then failures so the most urgent issues are prominent.
 
 If `fail_count > 0`: flag clearly that failures must be resolved before LightMem will function correctly.
 If only warnings: confirm LightMem will still function but advisory issues exist.

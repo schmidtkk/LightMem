@@ -281,6 +281,7 @@ def _create_initialized_repo(
     topics.mkdir(parents=True)
     (lightmem / "sessions").mkdir()
     (lightmem / "archive").mkdir()
+    (lightmem / "state.json").write_text('{"schema_version": 1}\n', encoding="utf-8")
 
     if with_mission:
         (topics / "mission.md").write_text(_MISSION_FRONTMATTER, encoding="utf-8")
@@ -603,6 +604,16 @@ class TestSessionStartResumeStaleGuard(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             self._create_repo_with_session_file(tmpdir)
             payload = _minimal_payload(tmpdir, source="resume")
+            result = _run_hook(payload, repo_path=tmpdir)
+            data = _parse_output(result.stdout)
+            ctx = data["hookSpecificOutput"]["additionalContext"]
+            self.assertIn("HISTORICAL REFERENCE ONLY", ctx)
+
+    def test_compact_source_replays_prior_session_like_resume(self) -> None:
+        """Codex uses compact as a SessionStart source after compaction."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._create_repo_with_session_file(tmpdir)
+            payload = _minimal_payload(tmpdir, source="compact")
             result = _run_hook(payload, repo_path=tmpdir)
             data = _parse_output(result.stdout)
             ctx = data["hookSpecificOutput"]["additionalContext"]

@@ -9,12 +9,16 @@ No implementation files were read during authoring.
 
 Expected API:
   - SkeletonPlan — frozen dataclass: repo_root, existing_claude_md,
-                   existing_lightmem_dir, topics_to_create
+                   existing_lightmem_dir, topics_to_create, existing_agents_md
   - inspect_repo(repo_root: Path) -> SkeletonPlan
   - create_skeleton(repo_root: Path) -> None
   - gateway_block_content() -> str
   - update_claude_md(repo_root, mode: Literal["append_fenced","backup_rewrite","abort"])
       -> Path | None
+  - update_agents_md(repo_root, mode: Literal["append_fenced","backup_rewrite","abort"])
+      -> Path | None
+  - update_gateway_files(repo_root, mode: Literal["append_fenced","backup_rewrite","abort"])
+      -> tuple[Path, ...]
 
 SPEC AMBIGUITIES ENCOUNTERED:
   SA1. `inspect_repo.topics_to_create` reads from the templates directory at the
@@ -50,11 +54,13 @@ import init_helper  # type: ignore[import]  # noqa: E402 – imported after path
 _TEMPLATES_DIR = _REPO_ROOT / "templates"
 _TOPICS_TMPL_DIR = _TEMPLATES_DIR / "topics"
 _CLAUDE_TMPL = _TEMPLATES_DIR / "CLAUDE.md.tmpl"
+_AGENTS_TMPL = _TEMPLATES_DIR / "AGENTS.md.tmpl"
 
 _HAS_TOPICS_TEMPLATES = _TOPICS_TMPL_DIR.is_dir() and bool(
     list(_TOPICS_TMPL_DIR.rglob("*.md"))
 )
 _HAS_CLAUDE_TMPL = _CLAUDE_TMPL.is_file()
+_HAS_AGENTS_TMPL = _AGENTS_TMPL.is_file()
 
 _GATEWAY_START = "<!-- LIGHTMEM:GATEWAY:START -->"
 _GATEWAY_END = "<!-- LIGHTMEM:GATEWAY:END -->"
@@ -74,6 +80,7 @@ class TestSkeletonPlanDataclass(unittest.TestCase):
             "existing_claude_md": False,
             "existing_lightmem_dir": False,
             "topics_to_create": (),
+            "existing_agents_md": False,
         }
         defaults.update(kwargs)
         return init_helper.SkeletonPlan(**defaults)  # type: ignore[arg-type]
@@ -94,6 +101,10 @@ class TestSkeletonPlanDataclass(unittest.TestCase):
     def test_existing_lightmem_dir_field(self) -> None:
         plan = self._make(existing_lightmem_dir=True)
         self.assertTrue(plan.existing_lightmem_dir)
+
+    def test_existing_agents_md_field(self) -> None:
+        plan = self._make(existing_agents_md=True)
+        self.assertTrue(plan.existing_agents_md)
 
     def test_topics_to_create_field(self) -> None:
         plan = self._make(topics_to_create=("mission", "architecture"))
@@ -129,6 +140,11 @@ class TestInspectRepoFreshDir(unittest.TestCase):
             plan = init_helper.inspect_repo(Path(tmpdir))
             self.assertFalse(plan.existing_claude_md)
 
+    def test_no_agents_md(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            plan = init_helper.inspect_repo(Path(tmpdir))
+            self.assertFalse(plan.existing_agents_md)
+
     def test_no_lightmem_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             plan = init_helper.inspect_repo(Path(tmpdir))
@@ -155,6 +171,12 @@ class TestInspectRepoExistingSetup(unittest.TestCase):
             plan = init_helper.inspect_repo(Path(tmpdir))
             self.assertTrue(plan.existing_claude_md)
 
+    def test_detects_existing_agents_md(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "AGENTS.md").write_text("# My project\n", encoding="utf-8")
+            plan = init_helper.inspect_repo(Path(tmpdir))
+            self.assertTrue(plan.existing_agents_md)
+
     def test_detects_existing_lightmem_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             (Path(tmpdir) / ".claude" / "lightmem").mkdir(parents=True)
@@ -165,9 +187,11 @@ class TestInspectRepoExistingSetup(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             (root / "CLAUDE.md").write_text("# Project\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text("# Project\n", encoding="utf-8")
             (root / ".claude" / "lightmem").mkdir(parents=True)
             plan = init_helper.inspect_repo(root)
             self.assertTrue(plan.existing_claude_md)
+            self.assertTrue(plan.existing_agents_md)
             self.assertTrue(plan.existing_lightmem_dir)
 
     def test_inspect_is_read_only(self) -> None:
@@ -330,6 +354,11 @@ class TestGatewayBlockContent(unittest.TestCase):
         result = init_helper.gateway_block_content()
         self.assertIsInstance(result, str)
 
+    @unittest.skipUnless(_HAS_AGENTS_TMPL, "templates/AGENTS.md.tmpl not present")
+    def test_agents_gateway_block_mentions_topics_dir(self) -> None:
+        content = init_helper.gateway_block_content("AGENTS.md")
+        self.assertIn(".claude/lightmem/topics", content)
+
 
 # ---------------------------------------------------------------------------
 # update_claude_md("append_fenced")
@@ -364,6 +393,60 @@ class TestUpdateClaudeMdAppendFencedNoFile(unittest.TestCase):
             init_helper.update_claude_md(root, "append_fenced")
             content = (root / "CLAUDE.md").read_text(encoding="utf-8")
             self.assertIn(_GATEWAY_END, content)
+
+
+class TestUpdateAgentsMdAppendFencedNoFile(unittest.TestCase):
+    """append_fenced with no existing AGENTS.md: creates Codex gateway file."""
+
+    def test_creates_agents_md(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_helper.update_agents_md(root, "append_fenced")
+            self.assertTrue((root / "AGENTS.md").is_file())
+
+    def test_returns_agents_md_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            result = init_helper.update_agents_md(root, "append_fenced")
+            self.assertEqual(result, root / "AGENTS.md")
+
+    def test_new_file_contains_gateway_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_helper.update_agents_md(root, "append_fenced")
+            content = (root / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertIn(_GATEWAY_START, content)
+            self.assertIn(_GATEWAY_END, content)
+            self.assertIn(".claude/lightmem/topics", content)
+
+
+class TestUpdateGatewayFiles(unittest.TestCase):
+    """update_gateway_files updates Claude Code and Codex gateway files together."""
+
+    def test_append_fenced_creates_both_gateway_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            result = init_helper.update_gateway_files(root, "append_fenced")
+            self.assertEqual(set(result), {root / "CLAUDE.md", root / "AGENTS.md"})
+            self.assertTrue((root / "CLAUDE.md").is_file())
+            self.assertTrue((root / "AGENTS.md").is_file())
+
+    def test_backup_rewrite_backs_up_both_existing_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "CLAUDE.md").write_text("# Claude original\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text("# Codex original\n", encoding="utf-8")
+            init_helper.update_gateway_files(root, "backup_rewrite")
+            self.assertEqual(len(list(root.glob("CLAUDE.md.bak.*"))), 1)
+            self.assertEqual(len(list(root.glob("AGENTS.md.bak.*"))), 1)
+
+    def test_abort_does_not_create_either_gateway_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            result = init_helper.update_gateway_files(root, "abort")
+            self.assertEqual(result, ())
+            self.assertFalse((root / "CLAUDE.md").exists())
+            self.assertFalse((root / "AGENTS.md").exists())
 
 
 class TestUpdateClaudeMdAppendFencedExistingNoFence(unittest.TestCase):

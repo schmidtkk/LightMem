@@ -1,13 +1,15 @@
 {
   "name": "lightmem",
-  "version": "0.2.0",
-  "description": "Structured, team-shareable project memory for Claude Code. Hooks maintain it; skills curate it.",
+  "version": "0.3.0",
+  "description": "Structured, team-shareable project memory for Codex CLI and Claude Code. Hooks maintain it; skills curate it.",
   "author": {
     "name": "LightMem contributors"
   },
   "license": "MIT",
-  "keywords": ["claude-code", "memory", "knowledge-base", "hooks", "skills"],
-  "skills": ["./skills/"],
+  "homepage": "https://github.com/schmidtkk/LightMem",
+  "repository": "https://github.com/schmidtkk/LightMem",
+  "keywords": ["codex", "openai", "claude-code", "memory", "knowledge-base", "hooks", "skills"],
+  "skills": "./skills/",
   "agents": [],
   "mcpServers": {}
 }

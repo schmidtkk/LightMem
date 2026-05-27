@@ -1,0 +1,6 @@
+interface:
+  display_name: LightMem Update
+  short_description: Promote confirmed memory candidates into LightMem topics.
+  default_prompt: Use LightMem update for this task.
+policy:
+  allow_implicit_invocation: true

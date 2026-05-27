@@ -61,12 +61,49 @@ def _extract_text(content: Any) -> str:
     if isinstance(content, list):
         parts = []
         for block in content:
-            if isinstance(block, dict) and block.get("type") == "text":
+            if isinstance(block, dict) and block.get("type") in {
+                "text",
+                "input_text",
+                "output_text",
+            }:
                 parts.append(block.get("text", ""))
             elif isinstance(block, str):
                 parts.append(block)
         return "".join(parts)
     return ""
+
+
+def _json_object(raw: Any) -> dict[str, Any]:
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        if isinstance(parsed, dict):
+            return parsed
+    return {}
+
+
+def _extract_file_paths(raw: Any) -> list[str]:
+    found: list[str] = []
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            for key in ("file_path", "path", "filename"):
+                path = value.get(key)
+                if isinstance(path, str) and path:
+                    found.append(path)
+            for nested in value.values():
+                visit(nested)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item)
+
+    parsed = _json_object(raw)
+    visit(parsed if parsed else raw)
+    return found
 
 
 def _walk_transcript(
@@ -97,15 +134,38 @@ def _walk_transcript(
         if not isinstance(entry, dict):
             continue
 
-        # Determine role from any of the three formats Claude Code uses.
+        message = entry.get("message")
+        if not isinstance(message, dict):
+            message = {}
+        payload = entry.get("payload")
+        if not isinstance(payload, dict):
+            payload = {}
+        payload_type = payload.get("type", "")
+
+        if payload_type == "function_call":
+            tool_name = str(payload.get("name") or "")
+            if tool_name and len(tools_seen) < _MAX_TOOLS:
+                tools_seen[tool_name] = None
+            for file_path in _extract_file_paths(payload.get("arguments")):
+                if len(files_seen) >= _MAX_FILES:
+                    break
+                files_seen[file_path] = None
+            continue
+
+        # Determine role from Claude Code and Codex rollout formats.
         role = (
             entry.get("role")
+            or message.get("role", "")
+            or payload.get("role", "")
             or entry.get("type")
-            or entry.get("message", {}).get("role", "")
         )
 
         # Extract content regardless of nesting depth.
-        content_raw = entry.get("content") or entry.get("message", {}).get("content")
+        content_raw = (
+            entry.get("content")
+            or message.get("content")
+            or payload.get("content")
+        )
 
         if role == "user":
             # Scrub before persisting: user prompts can contain pasted credentials,
@@ -130,8 +190,9 @@ def _walk_transcript(
                     if tool_name in _FILE_WRITE_TOOLS:
                         # input key differs between transcript versions.
                         tool_input = block.get("input") or block.get("tool_input") or {}
-                        file_path = tool_input.get("file_path", "")
-                        if file_path and len(files_seen) < _MAX_FILES:
+                        for file_path in _extract_file_paths(tool_input):
+                            if len(files_seen) >= _MAX_FILES:
+                                break
                             files_seen[file_path] = None
 
     total = len(all_user_msgs)
